@@ -1,0 +1,883 @@
+{
+  "info": {
+    "name": "TEP-05 EKG Security & Governance",
+    "description": "Test collection for RBAC/ABAC with 4 user personas (viewer, curator, steward, admin)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      {
+        "key": "accessTokenUrl",
+        "value": "http://localhost:8180/realms/ekg/protocol/openid-connect/token",
+        "type": "string"
+      },
+      {
+        "key": "clientId",
+        "value": "postman",
+        "type": "string"
+      },
+      {
+        "key": "grant_type",
+        "value": "password",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "keycloak_url",
+      "value": "http://localhost:8180"
+    },
+    {
+      "key": "api_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "realm",
+      "value": "ekg"
+    },
+    {
+      "key": "client_id",
+      "value": "postman"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Authentication",
+      "item": [
+        {
+          "name": "Login as alice.viewer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Access token present\", function () {",
+                  "    pm.expect(jsonData.access_token).to.exist;",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"viewer_token\", jsonData.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "username",
+                  "value": "alice.viewer"
+                },
+                {
+                  "key": "password",
+                  "value": "viewer123"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": ["{{keycloak_url}}"],
+              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"]
+            }
+          }
+        },
+        {
+          "name": "Login as bob.curator",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.set(\"curator_token\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "username",
+                  "value": "bob.curator"
+                },
+                {
+                  "key": "password",
+                  "value": "curator123"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": ["{{keycloak_url}}"],
+              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"]
+            }
+          }
+        },
+        {
+          "name": "Login as carol.steward",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.set(\"steward_token\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "username",
+                  "value": "carol.steward"
+                },
+                {
+                  "key": "password",
+                  "value": "steward123"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": ["{{keycloak_url}}"],
+              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"]
+            }
+          }
+        },
+        {
+          "name": "Login as dave.admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.collectionVariables.set(\"admin_token\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "username",
+                  "value": "dave.admin"
+                },
+                {
+                  "key": "password",
+                  "value": "admin123"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": ["{{keycloak_url}}"],
+              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Viewer Tests (alice.viewer)",
+      "item": [
+        {
+          "name": "GET /ekg/persons (SUCCESS - viewer can read)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Only Public and Internal data visible\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "    jsonData.data.forEach(function(person) {",
+                  "        if (person.label) {",
+                  "            var labelValue = person.label.value.split('#').pop();",
+                  "            pm.expect(['Public', 'Internal']).to.include(labelValue);",
+                  "        }",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{viewer_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/ekg/persons?limit=50",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "persons"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /ekg/quarantine (FAIL - viewer forbidden)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "pm.test(\"Error message mentions role requirement\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('curator');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{viewer_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/ekg/quarantine",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "quarantine"]
+            }
+          }
+        },
+        {
+          "name": "POST /ekg/sparql/update (FAIL - viewer forbidden)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{viewer_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"update\": \"PREFIX ex: <http://example.com/schema#> DELETE { ?s ex:email ?o } WHERE { ?s ex:email ?o }\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/ekg/sparql/update",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "sparql", "update"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Curator Tests (bob.curator)",
+      "item": [
+        {
+          "name": "GET /ekg/persons (SUCCESS - curator can read)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Public, Internal, Confidential data visible\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.meta.user.clearance).to.include('Confidential');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{curator_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/ekg/persons",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "persons"]
+            }
+          }
+        },
+        {
+          "name": "GET /ekg/quarantine (SUCCESS - curator can access)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Quarantine data returned\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});",
+                  "if (pm.response.json().data.length > 0) {",
+                  "    pm.collectionVariables.set('quarantine_entity_uri', pm.response.json().data[0].entity.value);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{curator_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/ekg/quarantine",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "quarantine"]
+            }
+          }
+        },
+        {
+          "name": "POST /ekg/quarantine/approve (SUCCESS - curator can approve)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Approval confirmation message\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('approved');",
+                  "    pm.expect(jsonData.meta.approvedBy).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{curator_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entityUri\": \"{{quarantine_entity_uri}}\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/ekg/quarantine/approve",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "quarantine", "approve"]
+            }
+          }
+        },
+        {
+          "name": "POST /ekg/sparql/update (FAIL - curator forbidden)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{curator_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"update\": \"PREFIX ex: <http://example.com/schema#> DELETE { ?s ex:email ?o } WHERE { ?s ex:email ?o }\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/ekg/sparql/update",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "sparql", "update"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Steward Tests (carol.steward)",
+      "item": [
+        {
+          "name": "GET /ekg/persons (SUCCESS - steward sees all including Secret)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Steward has Secret clearance\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.meta.user.clearance).to.include('Secret');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{steward_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/ekg/persons",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "persons"]
+            }
+          }
+        },
+        {
+          "name": "POST /ekg/sparql/update (SUCCESS - steward can update)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Update success message\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('successfully');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{steward_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"update\": \"PREFIX ex: <http://example.com/schema#> PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> INSERT DATA { GRAPH <http://example.com/data> { ex:TEST_ENTITY a ex:Person ; rdfs:label 'Test Entity by Steward' . } }\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/ekg/sparql/update",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "sparql", "update"]
+            }
+          }
+        },
+        {
+          "name": "GET /ekg/quarantine (SUCCESS - steward can access)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{steward_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/ekg/quarantine",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "quarantine"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Admin Tests (dave.admin)",
+      "item": [
+        {
+          "name": "GET /ekg/persons (SUCCESS - admin sees everything)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Admin has all roles and Secret clearance\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.meta.user.roles).to.include('admin');",
+                  "    pm.expect(jsonData.meta.user.clearance).to.include('Secret');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/ekg/persons",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "persons"]
+            }
+          }
+        },
+        {
+          "name": "GET /ekg/quarantine (SUCCESS - admin can access)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/ekg/quarantine",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "quarantine"]
+            }
+          }
+        },
+        {
+          "name": "POST /ekg/sparql/update (SUCCESS - admin can update)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"update\": \"PREFIX ex: <http://example.com/schema#> PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> DELETE { GRAPH <http://example.com/data> { ex:TEST_ENTITY ?p ?o } } WHERE { GRAPH <http://example.com/data> { ex:TEST_ENTITY ?p ?o } }\"\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/ekg/sparql/update",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "sparql", "update"]
+            }
+          }
+        },
+        {
+          "name": "POST /ekg/sparql/query (SUCCESS - custom query with filtering)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Query results returned\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"PREFIX ex: <http://example.com/schema#> SELECT ?person ?fullName ?label WHERE { ?person a ex:Person ; ex:fullName ?fullName . OPTIONAL { ?person ex:label ?label } } LIMIT 10\",\n  \"filterByLabel\": true\n}"
+            },
+            "url": {
+              "raw": "{{api_url}}/ekg/sparql/query",
+              "host": ["{{api_url}}"],
+              "path": ["ekg", "sparql", "query"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Audit Trail Verification",
+      "item": [
+        {
+          "name": "Check audit logs (admin only)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{api_url}}/audit/logs?limit=20",
+              "host": ["{{api_url}}"],
+              "path": ["audit", "logs"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

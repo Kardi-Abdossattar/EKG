@@ -1,0 +1,16 @@
+# ============================================================
+# Sanity Check: Invalid Email Format
+# Description: Detects emails that don't contain '@' (basic sanity check)
+# Expected: 0 results (SHACL should catch this, but double-check)
+# ============================================================
+
+PREFIX ex: <http://example.com/schema#>
+
+SELECT ?person ?fullName ?email
+WHERE {
+    ?person a ex:Person ;
+            ex:fullName ?fullName ;
+            ex:email ?email .
+    FILTER (!CONTAINS(?email, "@"))
+}
+ORDER BY ?fullName

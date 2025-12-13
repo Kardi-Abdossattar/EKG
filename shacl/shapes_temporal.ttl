@@ -1,0 +1,288 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# EKG Temporal SHACL Shapes (v0.1)
+# Date: 2025-11-22
+# Description: Validation shapes for temporal validity and versioning
+# ============================================================
+
+# ============================================================
+# Temporal Validity Validation
+# ============================================================
+
+ex:TemporalValidityShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:validFrom ;
+    sh:severity sh:Violation ;
+
+    # validFrom: required, must be dateTime
+    sh:property [
+        sh:path ex:validFrom ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Entity with temporal validity must have exactly one validFrom (xsd:dateTime)" ;
+    ] ;
+
+    # validTo: optional, must be dateTime, must be after validFrom
+    sh:property [
+        sh:path ex:validTo ;
+        sh:datatype xsd:dateTime ;
+        sh:maxCount 1 ;
+        sh:message "validTo must be after validFrom if specified" ;
+    ] .
+
+# ============================================================
+# Temporal Entity Validation
+# ============================================================
+
+ex:TemporalEntityShape a sh:NodeShape ;
+    sh:targetClass ex:TemporalEntity ;
+    sh:severity sh:Violation ;
+
+    # Temporal entities must have validFrom
+    sh:property [
+        sh:path ex:validFrom ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "TemporalEntity must have exactly one validFrom timestamp" ;
+    ] .
+
+# ============================================================
+# Version Validation
+# ============================================================
+
+ex:VersionShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:version ;
+    sh:severity sh:Violation ;
+
+    # Version: semantic version pattern (e.g., "1.0", "2.1.3")
+    sh:property [
+        sh:path ex:version ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^\\d+(\\.\\d+)*$" ;
+        sh:message "version must follow semantic versioning pattern (e.g., '1.0', '2.1.3')" ;
+    ] ;
+
+    # Versioned entities should reference canonical entity
+    sh:sparql [
+        sh:message "Warning: Versioned entity should have versionOf property linking to canonical entity" ;
+        sh:select """
+            PREFIX ex: <http://example.com/schema#>
+            SELECT $this
+            WHERE {
+                $this ex:version ?version .
+                FILTER NOT EXISTS { $this ex:versionOf ?canonical }
+            }
+        """ ;
+    ] .
+
+# ============================================================
+# Version Supersession Validation
+# ============================================================
+
+ex:VersionSupersessionShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:supersedes ;
+    sh:severity sh:Violation ;
+
+    # Supersedes: must point to another versioned entity
+    sh:property [
+        sh:path ex:supersedes ;
+        sh:minCount 1 ;
+        sh:message "If supersedes is specified, it must reference at least one previous version" ;
+    ] ;
+
+    # Entity that supersedes another should have higher version number (informational check)
+    sh:sparql [
+        sh:message "Info: Entity that supersedes another should have a higher version number" ;
+        sh:select """
+            PREFIX ex: <http://example.com/schema#>
+            SELECT $this
+            WHERE {
+                $this ex:supersedes ?oldVersion ;
+                      ex:version ?thisVersion .
+                ?oldVersion ex:version ?oldVersionNum .
+                # Simplified check: just compare as strings (not perfect, but informative)
+                FILTER(?thisVersion <= ?oldVersionNum)
+            }
+        """ ;
+    ] .
+
+# ============================================================
+# Current Version Validation
+# ============================================================
+
+ex:CurrentVersionShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:isCurrentVersion ;
+    sh:severity sh:Violation ;
+
+    # isCurrentVersion: boolean
+    sh:property [
+        sh:path ex:isCurrentVersion ;
+        sh:datatype xsd:boolean ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "isCurrentVersion must be exactly one boolean value" ;
+    ] ;
+
+    # Only one version per canonical entity should be current
+    sh:sparql [
+        sh:message "Warning: Multiple versions marked as current for same canonical entity" ;
+        sh:select """
+            PREFIX ex: <http://example.com/schema#>
+            SELECT $this
+            WHERE {
+                $this ex:versionOf ?canonical ;
+                      ex:isCurrentVersion true .
+                ?other ex:versionOf ?canonical ;
+                       ex:isCurrentVersion true .
+                FILTER($this != ?other)
+            }
+        """ ;
+    ] .
+
+# ============================================================
+# Snapshot Validation
+# ============================================================
+
+ex:SnapshotShape a sh:NodeShape ;
+    sh:targetClass ex:Snapshot ;
+    sh:severity sh:Violation ;
+
+    # Snapshot ID: required, unique identifier
+    sh:property [
+        sh:path ex:snapshotId ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minLength 1 ;
+        sh:message "Snapshot must have exactly one non-empty snapshotId" ;
+    ] ;
+
+    # Snapshot date: required
+    sh:property [
+        sh:path ex:snapshotDate ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Snapshot must have exactly one snapshotDate" ;
+    ] ;
+
+    # Diff from: optional, must point to another Snapshot
+    sh:property [
+        sh:path ex:diffFrom ;
+        sh:class ex:Snapshot ;
+        sh:maxCount 1 ;
+        sh:message "diffFrom must reference another Snapshot" ;
+    ] .
+
+# ============================================================
+# Change Event Validation
+# ============================================================
+
+ex:ChangeEventShape a sh:NodeShape ;
+    sh:targetClass ex:ChangeEvent ;
+    sh:severity sh:Violation ;
+
+    # Change type: required, controlled vocabulary
+    sh:property [
+        sh:path ex:changeType ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in ("insert" "delete" "update") ;
+        sh:message "ChangeEvent must have changeType: insert, delete, or update" ;
+    ] ;
+
+    # Changed at: required timestamp
+    sh:property [
+        sh:path ex:changedAt ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "ChangeEvent must have exactly one changedAt timestamp" ;
+    ] ;
+
+    # Changed by: required (Person or IngestionJob)
+    sh:property [
+        sh:path ex:changedBy ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:or (
+            [ sh:class ex:Person ]
+            [ sh:class ex:IngestionJob ]
+        ) ;
+        sh:message "ChangeEvent must be changedBy exactly one Person or IngestionJob" ;
+    ] .
+
+# ============================================================
+# Effective/Expiry Date Validation
+# ============================================================
+
+ex:EffectiveExpiryDateShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:effectiveDate, ex:expiryDate ;
+    sh:severity sh:Violation ;
+
+    # Effective date: if present, must be xsd:date
+    sh:property [
+        sh:path ex:effectiveDate ;
+        sh:datatype xsd:date ;
+        sh:maxCount 1 ;
+        sh:message "effectiveDate must be xsd:date" ;
+    ] ;
+
+    # Expiry date: if present, must be xsd:date, must be after effective date
+    sh:property [
+        sh:path ex:expiryDate ;
+        sh:datatype xsd:date ;
+        sh:maxCount 1 ;
+        sh:message "expiryDate must be after effectiveDate if both are specified" ;
+    ] .
+
+# ============================================================
+# As-of Query Support (Informational)
+# ============================================================
+
+ex:AsOfDateShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:asOfDate ;
+    sh:severity sh:Info ;
+
+    # As-of date: informational property for queries
+    sh:property [
+        sh:path ex:asOfDate ;
+        sh:datatype xsd:dateTime ;
+        sh:maxCount 1 ;
+        sh:message "asOfDate is a query parameter for temporal snapshots (xsd:dateTime)" ;
+    ] .
+
+# ============================================================
+# Temporal Consistency Check (SPARQL-based)
+# ============================================================
+
+ex:TemporalConsistencyShape a sh:NodeShape ;
+    sh:targetClass ex:Entity ;
+    sh:severity sh:Warning ;
+
+    # Warning: detect overlapping validity periods for same entity versions
+    sh:sparql [
+        sh:message "Warning: Overlapping validity periods detected for versions of same entity" ;
+        sh:select """
+            PREFIX ex: <http://example.com/schema#>
+            SELECT $this
+            WHERE {
+                $this ex:versionOf ?canonical ;
+                      ex:validFrom ?thisStart ;
+                      ex:validTo ?thisEnd .
+                ?other ex:versionOf ?canonical ;
+                       ex:validFrom ?otherStart ;
+                       ex:validTo ?otherEnd .
+                FILTER($this != ?other)
+                # Overlap: thisStart < otherEnd AND otherStart < thisEnd
+                FILTER(?thisStart < ?otherEnd && ?otherStart < ?thisEnd)
+            }
+        """ ;
+    ] .

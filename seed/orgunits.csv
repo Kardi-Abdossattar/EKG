@@ -1,0 +1,7 @@
+id,name,parentId,label,validFrom
+OU_ENG,Engineering,,Internal,2025-10-01T00:00:00Z
+OU_HR,Human Resources,OU_ENG,Confidential,2025-10-01T00:00:00Z
+OU_SALES,Sales,,Internal,2025-10-01T00:00:00Z
+OU_PROD,Product Management,OU_ENG,Internal,2025-10-15T00:00:00Z
+OU_FIN,Finance,,Confidential,2025-09-01T00:00:00Z
+OU_IT,IT Infrastructure,OU_ENG,Internal,2025-10-01T00:00:00Z

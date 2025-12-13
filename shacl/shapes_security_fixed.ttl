@@ -1,0 +1,70 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# EKG Security SHACL Shapes (v0.3 - Compatible with csv_to_rdf.py)
+# Date: 2025-11-23
+# Description: Validation shapes for security labels (accepts IRI values)
+# ============================================================
+
+# ============================================================
+# Entity Security Label Validation (FIXED for IRI values)
+# ============================================================
+
+ex:EntitySecurityShape a sh:NodeShape ;
+    sh:targetClass ex:Entity ;
+    sh:severity sh:Violation ;
+
+    # All entities must have exactly one security label (IRI value)
+    sh:property [
+        sh:path ex:label ;
+        sh:in (
+            <http://example.com/schema#Public>
+            <http://example.com/schema#Internal>
+            <http://example.com/schema#Confidential>
+            <http://example.com/schema#Secret>
+        ) ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Entity must have exactly one security label (Public, Internal, Confidential, Secret)" ;
+    ] .
+
+# NOTE: Compatible with csv_to_rdf.py which generates:
+#   ex:label <http://example.com/schema#Internal>
+
+# ============================================================
+# Data Owner Validation
+# ============================================================
+
+ex:DataOwnerShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:dataOwner ;
+    sh:severity sh:Violation ;
+
+    # Data owner must be a Person or OrgUnit
+    sh:property [
+        sh:path ex:dataOwner ;
+        sh:or (
+            [ sh:class ex:Person ]
+            [ sh:class ex:OrgUnit ]
+        ) ;
+        sh:maxCount 1 ;
+        sh:message "Data owner must be a Person or OrgUnit" ;
+    ] .
+
+# ============================================================
+# Classification Metadata Validation (Optional)
+# ============================================================
+
+ex:ClassificationMetadataShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:classifiedAt ;
+    sh:severity sh:Violation ;
+
+    # classifiedAt must be a valid dateTime
+    sh:property [
+        sh:path ex:classifiedAt ;
+        sh:datatype xsd:dateTime ;
+        sh:maxCount 1 ;
+        sh:message "classifiedAt must be a valid xsd:dateTime" ;
+    ] .

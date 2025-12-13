@@ -1,0 +1,102 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Asset {
+  assetType: String
+  id: ID!
+  label: String
+  location: String
+  name: String!
+}
+
+type OrgUnit {
+  childUnits: [OrgUnit!]!
+  id: ID!
+  label: String
+  name: String!
+  parentUnit: OrgUnit
+  source: String
+  validFrom: String
+  validTo: String
+}
+
+type OrgUnitConnection {
+  nodes: [OrgUnit!]!
+  totalCount: Float!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Person {
+  email: String!
+  fullName: String!
+  generatedAt: String
+  id: ID!
+  label: String
+  role: String
+  source: String
+  trustScore: Float
+  validFrom: String
+  validTo: String
+  worksFor: OrgUnit
+}
+
+type PersonConnection {
+  nodes: [Person!]!
+  pageInfo: PageInfo!
+  totalCount: Float!
+}
+
+type Product {
+  category: String
+  description: String
+  id: ID!
+  label: String
+  name: String!
+  price: Float
+  trustScore: Float
+}
+
+type Project {
+  description: String
+  endDate: String
+  id: ID!
+  name: String!
+  startDate: String
+  status: String
+}
+
+type QuarantineEntity {
+  id: String!
+  label: String
+  type: String!
+  violationMessage: String!
+}
+
+type Query {
+  assets: [Asset!]!
+  orgUnit(id: String!): OrgUnit
+  orgUnitHierarchy(rootId: String): [OrgUnit!]!
+  orgUnits(limit: Int! = 20, offset: Int! = 0): OrgUnitConnection!
+  person(id: String!): Person
+  persons(limit: Int! = 10, offset: Int! = 0, searchTerm: String): PersonConnection!
+  product(id: String!): Product
+  products(limit: Int! = 20, offset: Int! = 0): [Product!]!
+  projects: [Project!]!
+  quarantineEntities: [QuarantineEntity!]!
+  trustScoreStats: TrustScoreStats!
+}
+
+type TrustScoreStats {
+  average: Float!
+  count: Float!
+  lowConfidenceCount: Float!
+  max: Float!
+  min: Float!
+}

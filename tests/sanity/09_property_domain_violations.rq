@@ -1,0 +1,16 @@
+# ============================================================
+# Sanity Check: Property Domain Violations
+# Description: Detects entities with fullName that are not Person
+# Expected: 0 results (only Person should have fullName)
+# ============================================================
+
+PREFIX ex: <http://example.com/schema#>
+
+SELECT ?entity ?fullName ?type
+WHERE {
+    ?entity ex:fullName ?fullName .
+    OPTIONAL { ?entity a ?type }
+
+    FILTER NOT EXISTS { ?entity a ex:Person }
+}
+ORDER BY ?fullName

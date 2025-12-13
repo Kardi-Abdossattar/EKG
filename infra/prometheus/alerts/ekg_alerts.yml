@@ -1,0 +1,259 @@
+# Alertes Prometheus pour EKG - TEP-08_HARDEN_SCALE
+#
+# Ces alertes surveillent les SLOs critiques et déclenchent des notifications
+# en cas de dépassement des seuils.
+
+groups:
+  - name: ekg_slo_alerts
+    interval: 30s
+    rules:
+      # SLO principal: p95 latency < 800ms
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m])) * 1000 > 800
+        for: 5m
+        labels:
+          severity: warning
+          component: api-gateway
+          slo: latency
+        annotations:
+          summary: "API p95 latency exceeds SLO (> 800ms)"
+          description: "The 95th percentile latency is {{ $value | humanize }}ms, exceeding the 800ms SLO for 5 minutes."
+          runbook: "https://github.com/ekg/runbooks/slo-latency"
+
+      # SLO p99 critique
+      - alert: CriticalLatencyP99
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="api-gateway"}[5m])) * 1000 > 2000
+        for: 2m
+        labels:
+          severity: critical
+          component: api-gateway
+          slo: latency
+        annotations:
+          summary: "API p99 latency critically high (> 2s)"
+          description: "The 99th percentile latency is {{ $value | humanize }}ms, indicating severe performance degradation."
+          runbook: "https://github.com/ekg/runbooks/critical-latency"
+
+      # Taux d'erreur élevé
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job="api-gateway",status=~"5.."}[5m])
+            /
+            rate(http_requests_total{job="api-gateway"}[5m])
+          ) > 0.01
+        for: 3m
+        labels:
+          severity: warning
+          component: api-gateway
+          slo: availability
+        annotations:
+          summary: "High error rate detected (> 1%)"
+          description: "Error rate is {{ $value | humanizePercentage }}, exceeding the 1% threshold."
+          runbook: "https://github.com/ekg/runbooks/high-error-rate"
+
+      # Taux d'erreur critique
+      - alert: CriticalErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job="api-gateway",status=~"5.."}[5m])
+            /
+            rate(http_requests_total{job="api-gateway"}[5m])
+          ) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+          component: api-gateway
+          slo: availability
+        annotations:
+          summary: "CRITICAL: Error rate exceeds 5%"
+          description: "Error rate is {{ $value | humanizePercentage }}, service degraded."
+          runbook: "https://github.com/ekg/runbooks/critical-errors"
+
+  - name: ekg_service_health
+    interval: 30s
+    rules:
+      # GraphDB down
+      - alert: GraphDBDown
+        expr: up{job="graphdb"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: graphdb
+        annotations:
+          summary: "GraphDB is down"
+          description: "GraphDB has been unreachable for 1 minute. All SPARQL queries will fail."
+          runbook: "https://github.com/ekg/runbooks/graphdb-down"
+
+      # API Gateway down
+      - alert: APIGatewayDown
+        expr: up{job="api-gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api-gateway
+        annotations:
+          summary: "API Gateway is down"
+          description: "API Gateway is unreachable. All client requests will fail."
+          runbook: "https://github.com/ekg/runbooks/api-down"
+
+      # Redis down (moins critique)
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis is unreachable. Cache disabled, performance may degrade."
+          runbook: "https://github.com/ekg/runbooks/redis-down"
+
+  - name: ekg_resource_alerts
+    interval: 1m
+    rules:
+      # Redis memory usage élevé
+      - alert: RedisMemoryHigh
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis memory usage > 90%"
+          description: "Redis is using {{ $value | humanize }}% of allocated memory. Cache eviction may occur."
+          runbook: "https://github.com/ekg/runbooks/redis-memory"
+
+      # Redis memory critique
+      - alert: RedisMemoryCritical
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "CRITICAL: Redis memory usage > 95%"
+          description: "Redis is at {{ $value | humanize }}% memory. Immediate action required."
+          runbook: "https://github.com/ekg/runbooks/redis-memory-critical"
+
+      # Espace disque faible (GraphDB)
+      - alert: LowDiskSpace
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/opt/graphdb/home"}
+            /
+            node_filesystem_size_bytes{mountpoint="/opt/graphdb/home"}
+          ) * 100 < 10
+        for: 10m
+        labels:
+          severity: warning
+          component: graphdb
+        annotations:
+          summary: "Low disk space on GraphDB volume (< 10%)"
+          description: "Only {{ $value | humanize }}% disk space remaining on GraphDB."
+          runbook: "https://github.com/ekg/runbooks/low-disk"
+
+      # Espace disque critique
+      - alert: CriticalDiskSpace
+        expr: |
+          (
+            node_filesystem_avail_bytes{mountpoint="/opt/graphdb/home"}
+            /
+            node_filesystem_size_bytes{mountpoint="/opt/graphdb/home"}
+          ) * 100 < 5
+        for: 5m
+        labels:
+          severity: critical
+          component: graphdb
+        annotations:
+          summary: "CRITICAL: Disk space < 5%"
+          description: "GraphDB volume is almost full. Database writes may fail."
+          runbook: "https://github.com/ekg/runbooks/critical-disk"
+
+  - name: ekg_cache_performance
+    interval: 1m
+    rules:
+      # Cache hit rate faible
+      - alert: LowCacheHitRate
+        expr: |
+          (
+            redis_cache_hits_total
+            /
+            (redis_cache_hits_total + redis_cache_misses_total)
+          ) * 100 < 50
+        for: 15m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Cache hit rate below 50%"
+          description: "Cache is ineffective with only {{ $value | humanize }}% hit rate. Review cache strategy."
+          runbook: "https://github.com/ekg/runbooks/low-cache-hit"
+
+      # Évictions de cache fréquentes
+      - alert: HighCacheEvictionRate
+        expr: rate(redis_evicted_keys_total[5m]) > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "High cache eviction rate"
+          description: "Redis is evicting {{ $value | humanize }} keys/sec. Consider increasing memory."
+          runbook: "https://github.com/ekg/runbooks/cache-eviction"
+
+  - name: ekg_data_quality
+    interval: 5m
+    rules:
+      # SHACL violations élevées (si métrique exposée)
+      - alert: HighSHACLViolations
+        expr: shacl_violations_total > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: data-quality
+        annotations:
+          summary: "High number of SHACL violations detected"
+          description: "{{ $value }} SHACL violations found. Data quality may be compromised."
+          runbook: "https://github.com/ekg/runbooks/shacl-violations"
+
+      # Triplets avec trustScore faible
+      - alert: LowTrustScoreEntities
+        expr: ekg_low_trust_entities_total > 500
+        for: 15m
+        labels:
+          severity: info
+          component: trust-ml
+        annotations:
+          summary: "Many entities with low trust scores"
+          description: "{{ $value }} entities have trustScore < 0.5. Review curation queue."
+          runbook: "https://github.com/ekg/runbooks/low-trust"
+
+  - name: ekg_backup_alerts
+    interval: 1h
+    rules:
+      # Backup en échec
+      - alert: BackupFailed
+        expr: time() - ekg_last_backup_timestamp_seconds > 86400 * 2
+        for: 1h
+        labels:
+          severity: critical
+          component: backup
+        annotations:
+          summary: "Backup has not run successfully in > 48h"
+          description: "Last successful backup was {{ $value | humanizeDuration }} ago. RPO at risk."
+          runbook: "https://github.com/ekg/runbooks/backup-failed"
+
+      # Taille de backup anormale
+      - alert: AbnormalBackupSize
+        expr: |
+          abs(
+            ekg_backup_size_bytes - avg_over_time(ekg_backup_size_bytes[7d])
+          ) / avg_over_time(ekg_backup_size_bytes[7d]) > 0.5
+        for: 30m
+        labels:
+          severity: warning
+          component: backup
+        annotations:
+          summary: "Backup size deviation > 50%"
+          description: "Backup size deviation is {{ $value | humanizePercentage }}, exceeding the 50% threshold."
+          runbook: "https://github.com/ekg/runbooks/backup-size"

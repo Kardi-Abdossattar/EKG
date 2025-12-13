@@ -1,0 +1,18 @@
+# ============================================================
+# Sanity Check: Orphan OrgUnits (No Employees)
+# Description: Detects OrgUnit entities with no employees (no Person working for them)
+# Expected: May have results (e.g., newly created or inactive units)
+# Severity: Warning (not critical, but worth reviewing)
+# ============================================================
+
+PREFIX ex: <http://example.com/schema#>
+
+SELECT ?orgUnit ?name (COUNT(?employee) AS ?employeeCount)
+WHERE {
+    ?orgUnit a ex:OrgUnit ;
+             ex:name ?name .
+    OPTIONAL { ?employee ex:worksFor ?orgUnit }
+}
+GROUP BY ?orgUnit ?name
+HAVING (COUNT(?employee) = 0)
+ORDER BY ?name

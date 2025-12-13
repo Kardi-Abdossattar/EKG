@@ -1,0 +1,121 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# ============================================================
+# EKG Core Ontology (v0.1)
+# Date: 2025-11-22
+# Description: Core entity types and properties for Enterprise Knowledge Graph
+# ============================================================
+
+ex: a owl:Ontology ;
+    dcterms:title "EKG Core Ontology" ;
+    dcterms:description "Core entity types: Person, OrgUnit, Product, Project, Asset" ;
+    dcterms:created "2025-11-22"^^xsd:date ;
+    dcterms:creator "EKG Team" ;
+    owl:versionInfo "0.1" .
+
+# ============================================================
+# CLASSES
+# ============================================================
+
+# Base class for all entities (for SHACL targeting)
+ex:Entity a owl:Class ;
+    rdfs:label "Entity" ;
+    rdfs:comment "Base class for all business entities in the EKG" .
+
+ex:Person a owl:Class ;
+    rdfs:subClassOf ex:Entity ;
+    rdfs:label "Person" ;
+    rdfs:comment "Individual person within the organization" .
+
+ex:OrgUnit a owl:Class ;
+    rdfs:subClassOf ex:Entity ;
+    rdfs:label "Organizational Unit" ;
+    rdfs:comment "Department, team, or other organizational division" .
+
+ex:Product a owl:Class ;
+    rdfs:subClassOf ex:Entity ;
+    rdfs:label "Product" ;
+    rdfs:comment "Product or service offered by the organization" .
+
+ex:Project a owl:Class ;
+    rdfs:subClassOf ex:Entity ;
+    rdfs:label "Project" ;
+    rdfs:comment "Time-bound initiative or project" .
+
+ex:Asset a owl:Class ;
+    rdfs:subClassOf ex:Entity ;
+    rdfs:label "Asset" ;
+    rdfs:comment "Physical or digital asset (infrastructure, IP, etc.)" .
+
+# ============================================================
+# DATATYPE PROPERTIES
+# ============================================================
+
+# Person properties
+ex:fullName a owl:DatatypeProperty ;
+    rdfs:label "full name" ;
+    rdfs:comment "Full name of the person" ;
+    rdfs:domain ex:Person ;
+    rdfs:range xsd:string .
+
+ex:email a owl:DatatypeProperty ;
+    rdfs:label "email" ;
+    rdfs:comment "Email address (must be unique per person)" ;
+    rdfs:domain ex:Person ;
+    rdfs:range xsd:string .
+
+ex:role a owl:DatatypeProperty ;
+    rdfs:label "role" ;
+    rdfs:comment "Job role or title" ;
+    rdfs:domain ex:Person ;
+    rdfs:range xsd:string .
+
+# OrgUnit properties
+ex:name a owl:DatatypeProperty ;
+    rdfs:label "name" ;
+    rdfs:comment "Name of the organizational unit or entity" ;
+    rdfs:domain [ a owl:Class ; owl:unionOf (ex:OrgUnit ex:Product ex:Project ex:Asset) ] ;
+    rdfs:range xsd:string .
+
+# Product properties
+ex:description a owl:DatatypeProperty ;
+    rdfs:label "description" ;
+    rdfs:comment "Textual description of an entity" ;
+    rdfs:domain [ a owl:Class ; owl:unionOf (ex:Product ex:Project ex:Asset) ] ;
+    rdfs:range xsd:string .
+
+ex:status a owl:DatatypeProperty ;
+    rdfs:label "status" ;
+    rdfs:comment "Current status (e.g., active, archived, deprecated)" ;
+    rdfs:range xsd:string .
+
+# Project properties
+ex:startDate a owl:DatatypeProperty ;
+    rdfs:label "start date" ;
+    rdfs:comment "Project or initiative start date" ;
+    rdfs:domain ex:Project ;
+    rdfs:range xsd:date .
+
+ex:endDate a owl:DatatypeProperty ;
+    rdfs:label "end date" ;
+    rdfs:comment "Project or initiative end date" ;
+    rdfs:domain ex:Project ;
+    rdfs:range xsd:date .
+
+# Asset properties
+ex:assetType a owl:DatatypeProperty ;
+    rdfs:label "asset type" ;
+    rdfs:comment "Type of asset (e.g., server, software, IP)" ;
+    rdfs:domain ex:Asset ;
+    rdfs:range xsd:string .
+
+ex:location a owl:DatatypeProperty ;
+    rdfs:label "location" ;
+    rdfs:comment "Physical or logical location of an asset" ;
+    rdfs:domain ex:Asset ;
+    rdfs:range xsd:string .

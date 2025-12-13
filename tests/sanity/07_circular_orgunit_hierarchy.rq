@@ -1,0 +1,29 @@
+# ============================================================
+# Sanity Check: Circular OrgUnit Hierarchy
+# Description: Detects OrgUnits that are their own ancestor (circular reference)
+# Expected: 0 results (no circular hierarchies)
+# Note: This is a simplified 2-level check; deep cycles require recursive query
+# ============================================================
+
+PREFIX ex: <http://example.com/schema#>
+
+SELECT ?orgUnit ?name ?parent ?parentName
+WHERE {
+    # Check direct self-reference
+    {
+        ?orgUnit a ex:OrgUnit ;
+                 ex:name ?name ;
+                 ex:parentUnit ?orgUnit .
+        BIND(?name AS ?parentName)
+    }
+    UNION
+    # Check 2-level cycle: A -> B -> A
+    {
+        ?orgUnit a ex:OrgUnit ;
+                 ex:name ?name ;
+                 ex:parentUnit ?parent .
+        ?parent ex:name ?parentName ;
+                ex:parentUnit ?orgUnit .
+    }
+}
+ORDER BY ?name

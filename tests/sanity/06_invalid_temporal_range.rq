@@ -1,0 +1,18 @@
+# ============================================================
+# Sanity Check: Invalid Temporal Validity Range
+# Description: Detects entities where validTo is before or equal to validFrom
+# Expected: 0 results (validTo must be after validFrom)
+# ============================================================
+
+PREFIX ex: <http://example.com/schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?entity ?type ?validFrom ?validTo
+WHERE {
+    ?entity a ?type ;
+            ex:validFrom ?validFrom ;
+            ex:validTo ?validTo .
+
+    FILTER(?validTo <= ?validFrom)
+}
+ORDER BY ?validFrom

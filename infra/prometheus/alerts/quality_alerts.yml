@@ -1,0 +1,197 @@
+groups:
+  - name: ekg_quality_alerts
+    interval: 30s
+    rules:
+      # =============================================================================
+      # SHACL Violations - Critical
+      # =============================================================================
+      - alert: EKGSHACLViolationsCritical
+        expr: ekg_shacl_violations{severity="Violation"} > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: shacl_validator
+        annotations:
+          summary: "SHACL violations detected in repository {{ $labels.repository }}"
+          description: "{{ $value }} SHACL violations (severity: Violation) detected in repository {{ $labels.repository }}. Data quality compromised."
+
+      - alert: EKGSHACLViolationsWarning
+        expr: ekg_shacl_violations{severity="Warning"} > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: shacl_validator
+        annotations:
+          summary: "Multiple SHACL warnings in repository {{ $labels.repository }}"
+          description: "{{ $value }} SHACL warnings detected in repository {{ $labels.repository }}. Review data quality."
+
+      # =============================================================================
+      # Quality Score - Critical & Warning
+      # =============================================================================
+      - alert: EKGQualityScoreLow
+        expr: ekg_quality_score < 80
+        for: 2m
+        labels:
+          severity: warning
+          component: quality_monitor
+        annotations:
+          summary: "EKG quality score below threshold for {{ $labels.repository }}"
+          description: "Quality score is {{ $value }}/100 in repository {{ $labels.repository }}. Target: ≥80."
+
+      - alert: EKGQualityScoreCritical
+        expr: ekg_quality_score < 50
+        for: 1m
+        labels:
+          severity: critical
+          component: quality_monitor
+        annotations:
+          summary: "EKG quality score critically low for {{ $labels.repository }}"
+          description: "Quality score is {{ $value }}/100 in repository {{ $labels.repository }}. Immediate action required."
+
+      # =============================================================================
+      # Sanity Checks - Data Integrity
+      # =============================================================================
+      - alert: EKGDuplicateEmailsDetected
+        expr: ekg_sanity_check_issues{check_name="duplicate_emails"} > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: sanity_checks
+        annotations:
+          summary: "Duplicate emails detected in {{ $labels.repository }}"
+          description: "{{ $value }} persons with duplicate emails found in repository {{ $labels.repository }}."
+
+      - alert: EKGOrphanPersonsDetected
+        expr: ekg_sanity_check_issues{check_name="orphan_persons"} > 0
+        for: 2m
+        labels:
+          severity: warning
+          component: sanity_checks
+        annotations:
+          summary: "Orphan persons detected in {{ $labels.repository }}"
+          description: "{{ $value }} persons without organization assignment found in repository {{ $labels.repository }}."
+
+      - alert: EKGMissingSecurityLabels
+        expr: ekg_sanity_check_issues{check_name="missing_security_labels"} > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: sanity_checks
+        annotations:
+          summary: "Entities missing security labels in {{ $labels.repository }}"
+          description: "{{ $value }} entities without security classification found in repository {{ $labels.repository }}. Security policy violation."
+
+      - alert: EKGMissingProvenance
+        expr: ekg_sanity_check_issues{check_name="missing_provenance"} > 0
+        for: 2m
+        labels:
+          severity: warning
+          component: sanity_checks
+        annotations:
+          summary: "Entities missing provenance metadata in {{ $labels.repository }}"
+          description: "{{ $value }} entities without provenance tracking found in repository {{ $labels.repository }}."
+
+      - alert: EKGInvalidTemporalRange
+        expr: ekg_sanity_check_issues{check_name="invalid_temporal_range"} > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: sanity_checks
+        annotations:
+          summary: "Invalid temporal ranges detected in {{ $labels.repository }}"
+          description: "{{ $value }} entities with validTo < validFrom found in repository {{ $labels.repository }}."
+
+      # =============================================================================
+      # Monitoring Health
+      # =============================================================================
+      - alert: EKGQualityMonitorStale
+        expr: (time() - ekg_last_quality_check_timestamp) > 3600
+        for: 5m
+        labels:
+          severity: warning
+          component: quality_monitor
+        annotations:
+          summary: "Quality monitor stale for {{ $labels.repository }}"
+          description: "No quality check for {{ $labels.repository }} in the last hour. Monitor may be down."
+
+      - alert: EKGIngestLatencyHigh
+        expr: ekg_ingest_latency_seconds > 300
+        for: 2m
+        labels:
+          severity: warning
+          component: ingestion_pipeline
+        annotations:
+          summary: "High ingestion latency for {{ $labels.repository }}"
+          description: "Last ingestion took {{ $value }}s for repository {{ $labels.repository }}. Expected: <300s."
+
+      # =============================================================================
+      # Data Volume Anomalies
+      # =============================================================================
+      - alert: EKGTripleCountDropped
+        expr: |
+          (ekg_triple_count offset 5m) > 0 and
+          (ekg_triple_count - (ekg_triple_count offset 5m)) / (ekg_triple_count offset 5m) < -0.1
+        for: 1m
+        labels:
+          severity: critical
+          component: data_integrity
+        annotations:
+          summary: "Triple count dropped significantly in {{ $labels.repository }}"
+          description: "Triple count decreased by >10% in the last 5 minutes for {{ $labels.repository }}. Possible data loss."
+
+      - alert: EKGTripleCountStagnant
+        expr: |
+          ekg_triple_count == (ekg_triple_count offset 1h)
+        for: 6h
+        labels:
+          severity: info
+          component: ingestion_pipeline
+        annotations:
+          summary: "No new data ingested for {{ $labels.repository }}"
+          description: "Triple count unchanged for 6+ hours in repository {{ $labels.repository }}. Ingestion may be stalled."
+
+      # =============================================================================
+      # Entity Type Validation
+      # =============================================================================
+      - alert: EKGNoPersonEntities
+        expr: ekg_entities_by_type{entity_type="Person"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: data_validation
+        annotations:
+          summary: "No Person entities in {{ $labels.repository }}"
+          description: "Zero Person entities found in repository {{ $labels.repository }}. Expected core entity type missing."
+
+      - alert: EKGNoOrgUnitEntities
+        expr: ekg_entities_by_type{entity_type="OrgUnit"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: data_validation
+        annotations:
+          summary: "No OrgUnit entities in {{ $labels.repository }}"
+          description: "Zero OrgUnit entities found in repository {{ $labels.repository }}. Expected core entity type missing."
+
+      # =============================================================================
+      # TEP-03.5: Quarantine Alerts - Dual Repository
+      # =============================================================================
+      - alert: EKGQuarantineAnomalies
+        expr: ekg_quarantine_total > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: quarantine_monitor
+        annotations:
+          summary: "Anomalies en quarantaine détectées"
+          description: "{{ $value }} entités nécessitent curation dans repository {{ $labels.repository }}"
+
+      - alert: EKGQuarantineCritical
+        expr: ekg_quarantine_total > 50
+        for: 10m
+        labels:
+          severity: critical
+          component: quarantine_monitor
+        annotations:
+          summary: "Volume critique d'anomalies en quarantaine"
+          description: "{{ $value }} entités en quarantaine dans repository {{ $labels.repository }} (seuil: 50). Action de curation urgente requise."

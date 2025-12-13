@@ -1,0 +1,105 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+# Generated from persons.csv
+# Job ID: job_initial
+# Generated at: 2025-12-13T03:38:08.132348Z
+
+ex:P_Ali a ex:Person ;
+    ex:fullName "Ali Karim" ;
+    ex:email "ali.karim@example.com" ;
+    ex:worksFor ex:OU_ENG ;
+    ex:role "Senior Engineer" ;
+    ex:hasRole <http://example.com/schema#Curator> ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-10-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/persons.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:P_Sara a ex:Person ;
+    ex:fullName "Sara Batta" ;
+    ex:email "sara.batta@example.com" ;
+    ex:worksFor ex:OU_HR ;
+    ex:role "HR Specialist" ;
+    ex:hasRole <http://example.com/schema#Steward> ;
+    ex:label <http://example.com/schema#Confidential> ;
+    ex:validFrom "2025-10-15T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/persons.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:P_John a ex:Person ;
+    ex:fullName "John Smith" ;
+    ex:email "john.smith@example.com" ;
+    ex:worksFor ex:OU_SALES ;
+    ex:role "Sales Manager" ;
+    ex:hasRole <http://example.com/schema#Viewer> ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-09-15T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/persons.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:P_Maria a ex:Person ;
+    ex:fullName "Maria Garcia" ;
+    ex:email "maria.garcia@example.com" ;
+    ex:worksFor ex:OU_PROD ;
+    ex:role "Product Owner" ;
+    ex:hasRole <http://example.com/schema#Curator> ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-10-20T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/persons.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:P_Chen a ex:Person ;
+    ex:fullName "Chen Wei" ;
+    ex:email "chen.wei@example.com" ;
+    ex:worksFor ex:OU_IT ;
+    ex:role "DevOps Lead" ;
+    ex:hasRole <http://example.com/schema#Admin> ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-10-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/persons.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:P_Emma a ex:Person ;
+    ex:fullName "Emma Wilson" ;
+    ex:email "emma.wilson@example.com" ;
+    ex:worksFor ex:OU_FIN ;
+    ex:role "CFO" ;
+    ex:hasRole <http://example.com/schema#Admin> ;
+    ex:label <http://example.com/schema#Secret> ;
+    ex:validFrom "2025-09-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/persons.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:P_Raj a ex:Person ;
+    ex:fullName "Raj Patel" ;
+    ex:email "raj.patel@example.com" ;
+    ex:worksFor ex:OU_ENG ;
+    ex:role "Junior Developer" ;
+    ex:hasRole <http://example.com/schema#Viewer> ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-11-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/persons.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:P_Lina a ex:Person ;
+    ex:fullName "Lina Andersson" ;
+    ex:email "lina.andersson@example.com" ;
+    ex:worksFor ex:OU_PROD ;
+    ex:role "UX Designer" ;
+    ex:hasRole <http://example.com/schema#Curator> ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-10-25T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/persons.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+

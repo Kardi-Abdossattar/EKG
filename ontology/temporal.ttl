@@ -1,0 +1,142 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix time: <http://www.w3.org/2006/time#> .
+
+# ============================================================
+# EKG Temporal Ontology (v0.1)
+# Date: 2025-11-22
+# Description: Temporal validity and versioning properties
+# ============================================================
+
+<http://example.com/schema/temporal> a owl:Ontology ;
+    dcterms:title "EKG Temporal Ontology" ;
+    dcterms:description "Temporal validity, versioning, and 'as-of' query support" ;
+    dcterms:created "2025-11-22"^^xsd:date ;
+    dcterms:creator "EKG Team" ;
+    owl:versionInfo "0.1" ;
+    owl:imports <http://example.com/schema#> .
+
+# ============================================================
+# PROPERTIES - Temporal Validity
+# ============================================================
+
+ex:validFrom a owl:DatatypeProperty ;
+    rdfs:label "valid from" ;
+    rdfs:comment "Start timestamp of validity period (inclusive)" ;
+    rdfs:range xsd:dateTime .
+
+ex:validTo a owl:DatatypeProperty ;
+    rdfs:label "valid to" ;
+    rdfs:comment "End timestamp of validity period (exclusive); omit for open-ended validity" ;
+    rdfs:range xsd:dateTime .
+
+ex:validityInterval a owl:ObjectProperty ;
+    rdfs:label "validity interval" ;
+    rdfs:comment "Links to a time:Interval for complex temporal expressions" ;
+    rdfs:range time:Interval .
+
+# ============================================================
+# PROPERTIES - Versioning
+# ============================================================
+
+ex:version a owl:DatatypeProperty ;
+    rdfs:label "version" ;
+    rdfs:comment "Semantic version number (e.g., '1.0', '2.1.3')" ;
+    rdfs:range xsd:string .
+
+ex:versionOf a owl:ObjectProperty ;
+    rdfs:label "version of" ;
+    rdfs:comment "Links a versioned entity to its canonical identifier" .
+
+ex:supersedes a owl:ObjectProperty ;
+    rdfs:label "supersedes" ;
+    rdfs:comment "This version supersedes a previous version" ;
+    owl:inverseOf ex:supersededBy .
+
+ex:supersededBy a owl:ObjectProperty ;
+    rdfs:label "superseded by" ;
+    rdfs:comment "This version was superseded by a newer version" .
+
+ex:isCurrentVersion a owl:DatatypeProperty ;
+    rdfs:label "is current version" ;
+    rdfs:comment "Boolean: true if this is the current/active version" ;
+    rdfs:range xsd:boolean .
+
+# ============================================================
+# PROPERTIES - Snapshot & Diff Tracking
+# ============================================================
+
+ex:snapshotId a owl:DatatypeProperty ;
+    rdfs:label "snapshot ID" ;
+    rdfs:comment "Unique identifier for a graph snapshot (e.g., Git commit hash, timestamp)" ;
+    rdfs:range xsd:string .
+
+ex:snapshotDate a owl:DatatypeProperty ;
+    rdfs:label "snapshot date" ;
+    rdfs:comment "Timestamp when snapshot was created" ;
+    rdfs:range xsd:dateTime .
+
+ex:diffFrom a owl:ObjectProperty ;
+    rdfs:label "diff from" ;
+    rdfs:comment "Links to previous snapshot for diff computation" .
+
+ex:changeType a owl:DatatypeProperty ;
+    rdfs:label "change type" ;
+    rdfs:comment "Type of change: 'insert', 'delete', 'update'" ;
+    rdfs:range xsd:string .
+
+ex:changedAt a owl:DatatypeProperty ;
+    rdfs:label "changed at" ;
+    rdfs:comment "Timestamp when change occurred" ;
+    rdfs:range xsd:dateTime .
+
+ex:changedBy a owl:ObjectProperty ;
+    rdfs:label "changed by" ;
+    rdfs:comment "Person or system that made the change" ;
+    rdfs:range [ a owl:Class ; owl:unionOf (ex:Person ex:IngestionJob) ] .
+
+# ============================================================
+# PROPERTIES - As-of Queries
+# ============================================================
+
+ex:asOfDate a owl:DatatypeProperty ;
+    rdfs:label "as-of date" ;
+    rdfs:comment "Query parameter: retrieve state of graph as of this timestamp" ;
+    rdfs:range xsd:dateTime .
+
+ex:effectiveDate a owl:DatatypeProperty ;
+    rdfs:label "effective date" ;
+    rdfs:comment "Date when a change or policy becomes effective (business semantics)" ;
+    rdfs:range xsd:date .
+
+ex:expiryDate a owl:DatatypeProperty ;
+    rdfs:label "expiry date" ;
+    rdfs:comment "Date when an entity or policy expires (business semantics)" ;
+    rdfs:range xsd:date .
+
+# ============================================================
+# CLASSES - Temporal Entities
+# ============================================================
+
+ex:TemporalEntity a owl:Class ;
+    rdfs:label "Temporal Entity" ;
+    rdfs:comment "Base class for entities with temporal validity constraints" .
+
+ex:Snapshot a owl:Class ;
+    rdfs:label "Snapshot" ;
+    rdfs:comment "Immutable snapshot of graph state at a point in time" .
+
+ex:ChangeEvent a owl:Class ;
+    rdfs:label "Change Event" ;
+    rdfs:comment "Record of a change (insert/delete/update) with metadata" .
+
+# ============================================================
+# AXIOMS - Temporal Constraints
+# ============================================================
+
+# Define that validTo must be after validFrom (expressed as comment, enforced in SHACL)
+# SHACL rule: sh:lessThan ex:validFrom for ex:validTo

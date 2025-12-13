@@ -1,0 +1,17 @@
+# ============================================================
+# Sanity Check: Property Range Violations
+# Description: Detects worksFor property not pointing to OrgUnit
+# Expected: 0 results (worksFor must point to ex:OrgUnit)
+# ============================================================
+
+PREFIX ex: <http://example.com/schema#>
+
+SELECT ?person ?fullName ?worksFor
+WHERE {
+    ?person a ex:Person ;
+            ex:fullName ?fullName ;
+            ex:worksFor ?worksFor .
+
+    FILTER NOT EXISTS { ?worksFor a ex:OrgUnit }
+}
+ORDER BY ?fullName

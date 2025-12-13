@@ -1,0 +1,60 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+# Generated from orgunits.csv
+# Job ID: job_initial
+# Generated at: 2025-12-13T03:38:08.132348Z
+
+ex:OU_ENG a ex:OrgUnit ;
+    ex:name "Engineering" ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-10-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/orgunits.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:OU_HR a ex:OrgUnit ;
+    ex:name "Human Resources" ;
+    ex:label <http://example.com/schema#Confidential> ;
+    ex:validFrom "2025-10-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/orgunits.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    ex:parentUnit ex:OU_ENG .
+
+ex:OU_SALES a ex:OrgUnit ;
+    ex:name "Sales" ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-10-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/orgunits.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:OU_PROD a ex:OrgUnit ;
+    ex:name "Product Management" ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-10-15T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/orgunits.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    ex:parentUnit ex:OU_ENG .
+
+ex:OU_FIN a ex:OrgUnit ;
+    ex:name "Finance" ;
+    ex:label <http://example.com/schema#Confidential> ;
+    ex:validFrom "2025-09-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/orgunits.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:OU_IT a ex:OrgUnit ;
+    ex:name "IT Infrastructure" ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-10-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/orgunits.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    ex:parentUnit ex:OU_ENG .
+

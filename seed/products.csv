@@ -1,0 +1,5 @@
+id,name,description,status,ownedById,label,validFrom
+PROD_API,Enterprise API Platform,Core API gateway and microservices platform,active,OU_ENG,Internal,2025-09-01T00:00:00Z
+PROD_CRM,Customer Relationship Manager,CRM system for sales tracking,active,OU_SALES,Internal,2025-08-15T00:00:00Z
+PROD_HR,HR Management System,Employee records and payroll system,active,OU_HR,Confidential,2025-07-01T00:00:00Z
+PROD_ANALYTICS,Business Analytics Suite,Data analytics and reporting platform,development,OU_PROD,Internal,2025-10-10T00:00:00Z

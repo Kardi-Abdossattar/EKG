@@ -1,0 +1,345 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# EKG Core SHACL Shapes (v0.1)
+# Date: 2025-11-22
+# Description: Validation shapes for Person, OrgUnit, Product, Project, Asset
+# ============================================================
+
+# ============================================================
+# Person Shape
+# ============================================================
+
+ex:PersonShape a sh:NodeShape ;
+    sh:targetClass ex:Person ;
+    sh:severity sh:Violation ;
+
+    # Full name: required, non-empty string, max 200 chars
+    sh:property [
+        sh:path ex:fullName ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minLength 1 ;
+        sh:maxLength 200 ;
+        sh:message "Person must have exactly one non-empty fullName (max 200 chars)" ;
+    ] ;
+
+    # Email: required, unique, valid format
+    sh:property [
+        sh:path ex:email ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:pattern "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$" ;
+        sh:message "Person must have exactly one valid email address (RFC-compliant pattern)" ;
+    ] ;
+
+    # worksFor: required, must be OrgUnit
+    sh:property [
+        sh:path ex:worksFor ;
+        sh:class ex:OrgUnit ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Person must work for exactly one OrgUnit" ;
+    ] ;
+
+    # Role: optional, non-empty string
+    sh:property [
+        sh:path ex:role ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:minLength 1 ;
+        sh:message "Person role must be a non-empty string if provided" ;
+    ] ;
+
+    # Security label: required (from security ontology)
+    sh:property [
+        sh:path ex:label ;
+        sh:in (
+            <http://example.com/schema#Public>
+            <http://example.com/schema#Internal>
+            <http://example.com/schema#Confidential>
+            <http://example.com/schema#Secret>
+        ) ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Person must have exactly one security label (Public, Internal, Confidential, Secret)" ;
+    ] ;
+
+    # Temporal validity: validFrom required
+    sh:property [
+        sh:path ex:validFrom ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Person must have exactly one validFrom timestamp" ;
+    ] ;
+
+    # Temporal validity: validTo optional, must be after validFrom
+    sh:property [
+        sh:path ex:validTo ;
+        sh:datatype xsd:dateTime ;
+        sh:maxCount 1 ;
+        sh:message "Person validTo must be after validFrom if specified" ;
+    ] .
+
+# ============================================================
+# OrgUnit Shape
+# ============================================================
+
+ex:OrgUnitShape a sh:NodeShape ;
+    sh:targetClass ex:OrgUnit ;
+    sh:severity sh:Violation ;
+
+    # Name: required, non-empty, unique per OrgUnit
+    sh:property [
+        sh:path ex:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minLength 1 ;
+        sh:maxLength 100 ;
+        sh:message "OrgUnit must have exactly one non-empty name (max 100 chars)" ;
+    ] ;
+
+    # Parent unit: optional, must be another OrgUnit (no self-reference)
+    sh:property [
+        sh:path ex:parentUnit ;
+        sh:class ex:OrgUnit ;
+        sh:maxCount 1 ;
+        sh:message "OrgUnit parentUnit must be another OrgUnit" ;
+    ] ;
+
+    # Security label: required
+    sh:property [
+        sh:path ex:label ;
+        sh:in (
+            <http://example.com/schema#Public>
+            <http://example.com/schema#Internal>
+            <http://example.com/schema#Confidential>
+            <http://example.com/schema#Secret>
+        ) ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "OrgUnit must have exactly one security label" ;
+    ] ;
+
+    # Temporal validity
+    sh:property [
+        sh:path ex:validFrom ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "OrgUnit must have exactly one validFrom timestamp" ;
+    ] .
+
+# ============================================================
+# Product Shape
+# ============================================================
+
+ex:ProductShape a sh:NodeShape ;
+    sh:targetClass ex:Product ;
+    sh:severity sh:Violation ;
+
+    # Name: required
+    sh:property [
+        sh:path ex:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minLength 1 ;
+        sh:maxLength 150 ;
+        sh:message "Product must have exactly one non-empty name (max 150 chars)" ;
+    ] ;
+
+    # Description: optional
+    sh:property [
+        sh:path ex:description ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:message "Product can have at most one description" ;
+    ] ;
+
+    # Status: optional, controlled vocabulary
+    sh:property [
+        sh:path ex:status ;
+        sh:datatype xsd:string ;
+        sh:in ("active" "deprecated" "archived" "development") ;
+        sh:maxCount 1 ;
+        sh:message "Product status must be one of: active, deprecated, archived, development" ;
+    ] ;
+
+    # Owner: optional OrgUnit
+    sh:property [
+        sh:path ex:ownedBy ;
+        sh:class ex:OrgUnit ;
+        sh:maxCount 1 ;
+        sh:message "Product can be owned by at most one OrgUnit" ;
+    ] ;
+
+    # Security label
+    sh:property [
+        sh:path ex:label ;
+        sh:in (
+            <http://example.com/schema#Public>
+            <http://example.com/schema#Internal>
+            <http://example.com/schema#Confidential>
+            <http://example.com/schema#Secret>
+        ) ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Product must have exactly one security label" ;
+    ] ;
+
+    # Temporal validity
+    sh:property [
+        sh:path ex:validFrom ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Product must have exactly one validFrom timestamp" ;
+    ] .
+
+# ============================================================
+# Project Shape
+# ============================================================
+
+ex:ProjectShape a sh:NodeShape ;
+    sh:targetClass ex:Project ;
+    sh:severity sh:Violation ;
+
+    # Name: required
+    sh:property [
+        sh:path ex:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minLength 1 ;
+        sh:message "Project must have exactly one non-empty name" ;
+    ] ;
+
+    # Description: optional
+    sh:property [
+        sh:path ex:description ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Start date: required
+    sh:property [
+        sh:path ex:startDate ;
+        sh:datatype xsd:date ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Project must have exactly one start date" ;
+    ] ;
+
+    # End date: optional, must be after start date
+    sh:property [
+        sh:path ex:endDate ;
+        sh:datatype xsd:date ;
+        sh:maxCount 1 ;
+        sh:message "Project end date must be after start date if specified" ;
+    ] ;
+
+    # Manager: optional Person
+    sh:property [
+        sh:path ex:managedBy ;
+        sh:class ex:Person ;
+        sh:maxCount 1 ;
+        sh:message "Project can have at most one manager (Person)" ;
+    ] ;
+
+    # Security label
+    sh:property [
+        sh:path ex:label ;
+        sh:in (
+            <http://example.com/schema#Public>
+            <http://example.com/schema#Internal>
+            <http://example.com/schema#Confidential>
+            <http://example.com/schema#Secret>
+        ) ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Project must have exactly one security label" ;
+    ] ;
+
+    # Temporal validity
+    sh:property [
+        sh:path ex:validFrom ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Project must have exactly one validFrom timestamp" ;
+    ] .
+
+# ============================================================
+# Asset Shape
+# ============================================================
+
+ex:AssetShape a sh:NodeShape ;
+    sh:targetClass ex:Asset ;
+    sh:severity sh:Violation ;
+
+    # Name: required
+    sh:property [
+        sh:path ex:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minLength 1 ;
+        sh:message "Asset must have exactly one non-empty name" ;
+    ] ;
+
+    # Asset type: required
+    sh:property [
+        sh:path ex:assetType ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in ("server" "software" "ip" "database" "network" "other") ;
+        sh:message "Asset must have exactly one type: server, software, ip, database, network, other" ;
+    ] ;
+
+    # Location: optional
+    sh:property [
+        sh:path ex:location ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Owner: optional OrgUnit
+    sh:property [
+        sh:path ex:ownedBy ;
+        sh:class ex:OrgUnit ;
+        sh:maxCount 1 ;
+        sh:message "Asset can be owned by at most one OrgUnit" ;
+    ] ;
+
+    # Security label
+    sh:property [
+        sh:path ex:label ;
+        sh:in (
+            <http://example.com/schema#Public>
+            <http://example.com/schema#Internal>
+            <http://example.com/schema#Confidential>
+            <http://example.com/schema#Secret>
+        ) ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Asset must have exactly one security label" ;
+    ] ;
+
+    # Temporal validity
+    sh:property [
+        sh:path ex:validFrom ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Asset must have exactly one validFrom timestamp" ;
+    ] .

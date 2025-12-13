@@ -1,0 +1,288 @@
+{
+  "realm": "ekg",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "defaultSignatureAlgorithm": "RS256",
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "offlineSessionIdleTimeout": 2592000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
+  "oauth2DeviceCodeLifespan": 600,
+  "oauth2DevicePollingInterval": 5,
+  "roles": {
+    "realm": [
+      {
+        "name": "viewer",
+        "description": "Read-only access to Public and Internal data",
+        "composite": false,
+        "clientRole": false,
+        "attributes": {
+          "security_clearance": ["Public", "Internal"]
+        }
+      },
+      {
+        "name": "curator",
+        "description": "Can review quarantine, approve data, access up to Confidential",
+        "composite": false,
+        "clientRole": false,
+        "attributes": {
+          "security_clearance": ["Public", "Internal", "Confidential"]
+        }
+      },
+      {
+        "name": "steward",
+        "description": "Can modify data, override SHACL warnings, access Secret data",
+        "composite": false,
+        "clientRole": false,
+        "attributes": {
+          "security_clearance": ["Public", "Internal", "Confidential", "Secret"]
+        }
+      },
+      {
+        "name": "admin",
+        "description": "Full system access including schema changes and user management",
+        "composite": true,
+        "composites": {
+          "realm": ["viewer", "curator", "steward"]
+        },
+        "clientRole": false,
+        "attributes": {
+          "security_clearance": ["Public", "Internal", "Confidential", "Secret"]
+        }
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "ekg-api",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "ekg-api-secret-change-in-production",
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "https://api.ekg.example.com/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000",
+        "https://api.ekg.example.com"
+      ],
+      "protocol": "openid-connect",
+      "bearerOnly": false,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": true,
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ],
+      "protocolMappers": [
+        {
+          "name": "roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "security_clearance",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "security_clearance",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "attribute.nameformat": "Basic",
+            "attribute.name": "security_clearance"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "ekg-ui",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": [
+        "http://localhost:4200/*",
+        "https://ui.ekg.example.com/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200",
+        "https://ui.ekg.example.com"
+      ],
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "fullScopeAllowed": true
+    },
+    {
+      "clientId": "postman",
+      "enabled": true,
+      "publicClient": true,
+      "redirectUris": [
+        "https://oauth.pstmn.io/v1/callback"
+      ],
+      "webOrigins": [
+        "https://oauth.pstmn.io"
+      ],
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "alice.viewer",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "alice.viewer@example.com",
+      "firstName": "Alice",
+      "lastName": "Viewer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "viewer123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["viewer"],
+      "attributes": {
+        "department": ["Finance"],
+        "employee_id": ["EMP001"]
+      }
+    },
+    {
+      "username": "bob.curator",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "bob.curator@example.com",
+      "firstName": "Bob",
+      "lastName": "Curator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "curator123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["curator"],
+      "attributes": {
+        "department": ["Data Quality"],
+        "employee_id": ["EMP002"]
+      }
+    },
+    {
+      "username": "carol.steward",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "carol.steward@example.com",
+      "firstName": "Carol",
+      "lastName": "Steward",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "steward123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["steward"],
+      "attributes": {
+        "department": ["IT Security"],
+        "employee_id": ["EMP003"]
+      }
+    },
+    {
+      "username": "dave.admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "dave.admin@example.com",
+      "firstName": "Dave",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["admin", "viewer", "curator", "steward"],
+      "attributes": {
+        "department": ["System Administration"],
+        "employee_id": ["EMP004"]
+      }
+    }
+  ],
+  "scopeMappings": [],
+  "clientScopeMappings": {},
+  "components": {},
+  "authenticationFlows": [],
+  "identityProviders": [],
+  "identityProviderMappers": [],
+  "internationalizationEnabled": false,
+  "supportedLocales": [],
+  "defaultLocale": "",
+  "eventsEnabled": true,
+  "eventsExpiration": 2592000,
+  "eventsListeners": ["jboss-logging"],
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR",
+    "LOGOUT",
+    "REGISTER",
+    "UPDATE_PASSWORD",
+    "UPDATE_PROFILE"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+  "attributes": {
+    "bruteForceProtected": "true",
+    "failureFactor": "5",
+    "maxDeltaTimeSeconds": "43200",
+    "waitIncrementSeconds": "60"
+  }
+}

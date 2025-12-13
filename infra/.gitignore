@@ -1,0 +1,33 @@
+# =============================================================================
+# EKG Infrastructure - Git Ignore
+# =============================================================================
+
+# Environment variables (secrets)
+.env
+.env.local
+.env.production
+
+# Node modules
+api-gateway/node_modules/
+api-gateway/dist/
+api-gateway/logs/
+api-gateway/.npm/
+
+# Docker volumes (local data)
+volumes/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

@@ -1,0 +1,284 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# ============================================================
+# EKG Provenance SHACL Shapes (v0.1)
+# Date: 2025-11-22
+# Description: Validation shapes for provenance, lineage, and trust scoring
+# ============================================================
+
+# ============================================================
+# Provenance Metadata Validation
+# ============================================================
+
+ex:ProvenanceMetadataShape a sh:NodeShape ;
+    sh:targetSubjectsOf prov:wasDerivedFrom, prov:wasGeneratedBy, prov:wasAttributedTo ;
+    sh:severity sh:Warning ;
+
+    # Entities with provenance should have generatedAtTime
+    sh:sparql [
+        sh:message "Entity with provenance metadata should have prov:generatedAtTime timestamp" ;
+        sh:select """
+            PREFIX prov: <http://www.w3.org/ns/prov#>
+            SELECT $this
+            WHERE {
+                {
+                    $this prov:wasDerivedFrom ?source .
+                } UNION {
+                    $this prov:wasGeneratedBy ?activity .
+                } UNION {
+                    $this prov:wasAttributedTo ?agent .
+                }
+                FILTER NOT EXISTS { $this prov:generatedAtTime ?time }
+            }
+        """ ;
+    ] .
+
+# ============================================================
+# Data Source Validation
+# ============================================================
+
+ex:DataSourceShape a sh:NodeShape ;
+    sh:targetClass ex:DataSource ;
+    sh:severity sh:Violation ;
+
+    # Data source must have a name or identifier
+    sh:property [
+        sh:path ex:name ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minLength 1 ;
+        sh:message "DataSource must have exactly one non-empty name" ;
+    ] ;
+
+    # Source type: required, controlled vocabulary
+    sh:property [
+        sh:path ex:sourceType ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in ("csv" "api" "database" "manual" "other") ;
+        sh:message "DataSource must have sourceType: csv, api, database, manual, or other" ;
+    ] ;
+
+    # Source reputation: optional, range [0,1]
+    sh:property [
+        sh:path ex:sourceReputation ;
+        sh:datatype xsd:decimal ;
+        sh:maxCount 1 ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 1.0 ;
+        sh:message "DataSource reputation must be between 0.0 and 1.0" ;
+    ] .
+
+# ============================================================
+# Ingestion Job Validation
+# ============================================================
+
+ex:IngestionJobShape a sh:NodeShape ;
+    sh:targetClass ex:IngestionJob ;
+    sh:severity sh:Violation ;
+
+    # Job ID: required
+    sh:property [
+        sh:path ex:jobId ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minLength 1 ;
+        sh:message "IngestionJob must have exactly one non-empty jobId" ;
+    ] ;
+
+    # DAG ID: optional (for Airflow jobs)
+    sh:property [
+        sh:path ex:dagId ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Run ID: optional
+    sh:property [
+        sh:path ex:runId ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+    ] ;
+
+    # Start time
+    sh:property [
+        sh:path prov:startedAtTime ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "IngestionJob must have exactly one startedAtTime" ;
+    ] ;
+
+    # End time: optional, must be after start time
+    sh:property [
+        sh:path prov:endedAtTime ;
+        sh:datatype xsd:dateTime ;
+        sh:maxCount 1 ;
+        sh:message "IngestionJob endedAtTime must be after startedAtTime" ;
+    ] .
+
+# ============================================================
+# Trust Score Validation
+# ============================================================
+
+ex:TrustScoreShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:trustScore ;
+    sh:severity sh:Violation ;
+
+    # Trust score: range [0,1]
+    sh:property [
+        sh:path ex:trustScore ;
+        sh:datatype xsd:decimal ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minInclusive 0.0 ;
+        sh:maxInclusive 1.0 ;
+        sh:message "trustScore must be between 0.0 and 1.0" ;
+    ] ;
+
+    # Trust score must have computation timestamp
+    sh:property [
+        sh:path ex:trustScoreComputedAt ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Entity with trustScore must have trustScoreComputedAt timestamp" ;
+    ] ;
+
+    # Trust score method: optional but recommended
+    sh:property [
+        sh:path ex:trustScoreMethod ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+        sh:message "trustScoreMethod should describe the algorithm used (e.g., 'TransE+IsolationForest')" ;
+    ] .
+
+# ============================================================
+# Anomaly Score Validation
+# ============================================================
+
+ex:AnomalyScoreShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:anomalyScore ;
+    sh:severity sh:Violation ;
+
+    # Anomaly score: non-negative
+    sh:property [
+        sh:path ex:anomalyScore ;
+        sh:datatype xsd:decimal ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:minInclusive 0.0 ;
+        sh:message "anomalyScore must be non-negative (higher = more anomalous)" ;
+    ] .
+
+# ============================================================
+# Curation Activity Validation
+# ============================================================
+
+ex:CurationActivityShape a sh:NodeShape ;
+    sh:targetClass ex:CurationActivity ;
+    sh:severity sh:Violation ;
+
+    # Curator: required (Person)
+    sh:property [
+        sh:path prov:wasAssociatedWith ;
+        sh:class ex:Person ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "CurationActivity must be associated with exactly one Person (curator)" ;
+    ] ;
+
+    # Curation time
+    sh:property [
+        sh:path prov:endedAtTime ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "CurationActivity must have exactly one endedAtTime" ;
+    ] .
+
+# ============================================================
+# Curated Entity Validation
+# ============================================================
+
+ex:CuratedEntityShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:curatedBy ;
+    sh:severity sh:Info ;
+
+    # Curated entities should have curation timestamp
+    sh:property [
+        sh:path ex:curatedAt ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "Entity with curatedBy should have curatedAt timestamp" ;
+    ] ;
+
+    # Curated entities should have curation notes (informational)
+    sh:sparql [
+        sh:message "Info: Curated entity should have curationNotes explaining changes" ;
+        sh:select """
+            PREFIX ex: <http://example.com/schema#>
+            SELECT $this
+            WHERE {
+                $this ex:curatedBy ?curator .
+                FILTER NOT EXISTS { $this ex:curationNotes ?notes }
+            }
+        """ ;
+    ] .
+
+# ============================================================
+# Validation Activity Shape
+# ============================================================
+
+ex:ValidationActivityShape a sh:NodeShape ;
+    sh:targetClass ex:ValidationActivity ;
+    sh:severity sh:Violation ;
+
+    # Validation result: required, controlled vocabulary
+    sh:property [
+        sh:path ex:validationResult ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:in ("conforms" "violation" "warning") ;
+        sh:message "ValidationActivity must have validationResult: conforms, violation, or warning" ;
+    ] ;
+
+    # Validation timestamp
+    sh:property [
+        sh:path prov:endedAtTime ;
+        sh:datatype xsd:dateTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "ValidationActivity must have exactly one endedAtTime" ;
+    ] .
+
+# ============================================================
+# Quality Flags Validation (SPARQL-based)
+# ============================================================
+
+ex:QualityFlagsConsistencyShape a sh:NodeShape ;
+    sh:targetSubjectsOf ex:qualityFlags ;
+    sh:severity sh:Warning ;
+
+    # Warning: entities with quality flags should have low trust scores
+    sh:sparql [
+        sh:message "Warning: Entity has quality flags but high trust score (potential inconsistency)" ;
+        sh:select """
+            PREFIX ex: <http://example.com/schema#>
+            SELECT $this
+            WHERE {
+                $this ex:qualityFlags ?flags ;
+                      ex:trustScore ?score .
+                FILTER(?score > 0.7)
+                FILTER(STRLEN(?flags) > 0)
+            }
+        """ ;
+    ] .

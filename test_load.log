@@ -1,0 +1,9 @@
+============================================================
+GraphDB RDF Loader
+============================================================
+Repository  : ekg
+GraphDB URL : http://localhost:7200
+Source      : staging_manual
+Named Graph : http://example.com/staging
+============================================================
+Loading assets.ttl... [OK] HTTP 204

@@ -1,0 +1,16 @@
+# ============================================================
+# Sanity Check: Orphan Persons (No OrgUnit)
+# Description: Detects Person entities not linked to any OrgUnit via worksFor
+# Expected: 0 results (every person should work for an OrgUnit)
+# ============================================================
+
+PREFIX ex: <http://example.com/schema#>
+
+SELECT ?person ?fullName ?email
+WHERE {
+    ?person a ex:Person ;
+            ex:fullName ?fullName .
+    OPTIONAL { ?person ex:email ?email }
+    FILTER NOT EXISTS { ?person ex:worksFor ?orgUnit }
+}
+ORDER BY ?fullName

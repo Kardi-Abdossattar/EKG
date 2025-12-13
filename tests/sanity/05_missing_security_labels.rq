@@ -1,0 +1,21 @@
+# ============================================================
+# Sanity Check: Missing Security Labels
+# Description: Detects entities without security classification labels
+# Expected: 0 results (all entities must have security labels)
+# ============================================================
+
+PREFIX ex: <http://example.com/schema#>
+
+SELECT ?entity ?type ?name
+WHERE {
+    ?entity a ?type .
+    FILTER(?type IN (ex:Person, ex:OrgUnit, ex:Product, ex:Project, ex:Asset))
+
+    OPTIONAL { ?entity ex:name ?name }
+    OPTIONAL { ?entity ex:fullName ?fullName }
+
+    FILTER NOT EXISTS { ?entity ex:label ?securityLabel }
+
+    BIND(COALESCE(?name, ?fullName, "N/A") AS ?name)
+}
+ORDER BY ?type ?name

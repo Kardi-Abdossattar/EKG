@@ -1,0 +1,45 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+# Generated from projects.csv
+# Job ID: job_initial
+# Generated at: 2025-12-13T03:38:08.143120Z
+
+ex:PROJ_MIGRATION a ex:Project ;
+    ex:name "Cloud Migration" ;
+    ex:description "Migrate legacy systems to AWS cloud" ;
+    ex:startDate "2025-09-01"^^xsd:date ;
+    ex:endDate "2026-03-31"^^xsd:date ;
+    ex:managedBy ex:P_Chen ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-09-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/projects.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.143120Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.143120Z"^^xsd:dateTime .
+
+ex:PROJ_REDESIGN a ex:Project ;
+    ex:name "UX Redesign Initiative" ;
+    ex:description "Redesign all product UIs for consistency" ;
+    ex:startDate "2025-10-15"^^xsd:date ;
+    ex:endDate "2026-06-30"^^xsd:date ;
+    ex:managedBy ex:P_Lina ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-10-15T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/projects.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.143120Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.143120Z"^^xsd:dateTime .
+
+ex:PROJ_SECURITY a ex:Project ;
+    ex:name "Security Audit 2025" ;
+    ex:description "Comprehensive security assessment and remediation" ;
+    ex:startDate "2025-11-01"^^xsd:date ;
+    ex:endDate "2025-12-31"^^xsd:date ;
+    ex:managedBy ex:P_Chen ;
+    ex:label <http://example.com/schema#Confidential> ;
+    ex:validFrom "2025-11-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/projects.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.143120Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.143120Z"^^xsd:dateTime .
+

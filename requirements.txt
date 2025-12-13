@@ -1,0 +1,25 @@
+# EKG Project - Python Dependencies
+# Version: 2.0 (Simplified)
+# Date: 2025-12-12
+
+# Core Dependencies
+requests>=2.31.0
+pyyaml>=6.0.1
+
+# RDF and SPARQL
+rdflib>=7.0.0
+SPARQLWrapper>=2.0.0
+
+# Data Processing
+pandas>=2.1.0
+numpy>=1.24.0
+
+# Utilities
+python-dateutil>=2.8.2
+tqdm>=4.66.0
+
+# Prometheus Client (for quality monitoring)
+prometheus-client>=0.19.0
+
+# Optional: Neo4j driver (for sync scripts)
+neo4j>=5.14.0

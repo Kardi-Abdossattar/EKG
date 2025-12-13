@@ -1,0 +1,85 @@
+# =============================================================================
+# Prometheus Configuration - EKG Sécurisé
+# =============================================================================
+# Scrape metrics from GraphDB, Airflow, API Gateway, and system exporters
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'ekg-dev'
+    environment: 'development'
+
+# Alertmanager configuration (optionnel, à ajouter plus tard)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# Règles d'alerte (TEP-03)
+rule_files:
+  - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # GraphDB metrics (si exposé via JMX exporter)
+  - job_name: 'graphdb'
+    static_configs:
+      - targets: ['graphdb:7200']
+        labels:
+          service: 'graphdb'
+          type: 'triplestore'
+    metrics_path: '/rest/monitor/infrastructure'
+    scrape_interval: 30s
+
+  # API Gateway metrics (à exposer via prom-client dans NestJS)
+  - job_name: 'api-gateway'
+    static_configs:
+      - targets: ['api-gateway:3000']
+        labels:
+          service: 'api-gateway'
+          type: 'api'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Pushgateway (TEP-03: Quality Monitor metrics)
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']
+        labels:
+          service: 'pushgateway'
+          type: 'metrics-aggregator'
+    scrape_interval: 15s
+
+  # Airflow metrics (si StatSD bridge configuré)
+  # - job_name: 'airflow'
+  #   static_configs:
+  #     - targets: ['airflow-webserver:8080']
+  #       labels:
+  #         service: 'airflow'
+  #         type: 'orchestration'
+
+  # Keycloak metrics (si exposé)
+  # - job_name: 'keycloak'
+  #   static_configs:
+  #     - targets: ['keycloak:8080']
+  #       labels:
+  #         service: 'keycloak'
+  #         type: 'auth'
+  #   metrics_path: '/metrics'
+
+  # PostgreSQL metrics (via postgres_exporter - à ajouter si nécessaire)
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #       labels:
+  #         service: 'postgres'
+  #         type: 'database'

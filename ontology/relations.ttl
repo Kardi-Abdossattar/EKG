@@ -1,0 +1,122 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# ============================================================
+# EKG Relations Ontology (v0.1)
+# Date: 2025-11-22
+# Description: Object properties defining relationships between entities
+# ============================================================
+
+<http://example.com/schema/relations> a owl:Ontology ;
+    dcterms:title "EKG Relations Ontology" ;
+    dcterms:description "Object properties: worksFor, parentUnit, participatesIn, owns, manages" ;
+    dcterms:created "2025-11-22"^^xsd:date ;
+    dcterms:creator "EKG Team" ;
+    owl:versionInfo "0.1" ;
+    owl:imports <http://example.com/schema#> .
+
+# ============================================================
+# OBJECT PROPERTIES - Organizational
+# ============================================================
+
+ex:worksFor a owl:ObjectProperty ;
+    rdfs:label "works for" ;
+    rdfs:comment "Indicates the organizational unit a person works for" ;
+    rdfs:domain ex:Person ;
+    rdfs:range ex:OrgUnit ;
+    owl:inverseOf ex:employs .
+
+ex:employs a owl:ObjectProperty ;
+    rdfs:label "employs" ;
+    rdfs:comment "Inverse of worksFor: organizational unit employs person" ;
+    rdfs:domain ex:OrgUnit ;
+    rdfs:range ex:Person .
+
+ex:parentUnit a owl:ObjectProperty ;
+    rdfs:label "parent unit" ;
+    rdfs:comment "Hierarchical parent organizational unit" ;
+    rdfs:domain ex:OrgUnit ;
+    rdfs:range ex:OrgUnit ;
+    owl:inverseOf ex:hasSubUnit .
+
+ex:hasSubUnit a owl:ObjectProperty ;
+    rdfs:label "has sub-unit" ;
+    rdfs:comment "Inverse of parentUnit: organizational unit has child units" ;
+    rdfs:domain ex:OrgUnit ;
+    rdfs:range ex:OrgUnit .
+
+# ============================================================
+# OBJECT PROPERTIES - Project/Product Management
+# ============================================================
+
+ex:participatesIn a owl:ObjectProperty ;
+    rdfs:label "participates in" ;
+    rdfs:comment "Person participates in a project" ;
+    rdfs:domain ex:Person ;
+    rdfs:range ex:Project ;
+    owl:inverseOf ex:hasParticipant .
+
+ex:hasParticipant a owl:ObjectProperty ;
+    rdfs:label "has participant" ;
+    rdfs:comment "Project has a participant (person)" ;
+    rdfs:domain ex:Project ;
+    rdfs:range ex:Person .
+
+ex:manages a owl:ObjectProperty ;
+    rdfs:label "manages" ;
+    rdfs:comment "Person manages a project, product, or asset" ;
+    rdfs:domain ex:Person ;
+    rdfs:range [ a owl:Class ; owl:unionOf (ex:Project ex:Product ex:Asset) ] ;
+    owl:inverseOf ex:managedBy .
+
+ex:managedBy a owl:ObjectProperty ;
+    rdfs:label "managed by" ;
+    rdfs:comment "Inverse of manages: entity is managed by person" ;
+    rdfs:domain [ a owl:Class ; owl:unionOf (ex:Project ex:Product ex:Asset) ] ;
+    rdfs:range ex:Person .
+
+ex:owns a owl:ObjectProperty ;
+    rdfs:label "owns" ;
+    rdfs:comment "Organizational unit owns a product, project, or asset" ;
+    rdfs:domain ex:OrgUnit ;
+    rdfs:range [ a owl:Class ; owl:unionOf (ex:Project ex:Product ex:Asset) ] ;
+    owl:inverseOf ex:ownedBy .
+
+ex:ownedBy a owl:ObjectProperty ;
+    rdfs:label "owned by" ;
+    rdfs:comment "Inverse of owns: entity is owned by organizational unit" ;
+    rdfs:domain [ a owl:Class ; owl:unionOf (ex:Project ex:Product ex:Asset) ] ;
+    rdfs:range ex:OrgUnit .
+
+# ============================================================
+# OBJECT PROPERTIES - Asset/Product Dependencies
+# ============================================================
+
+ex:dependsOn a owl:ObjectProperty ;
+    rdfs:label "depends on" ;
+    rdfs:comment "Entity depends on another entity (product depends on asset, project on product, etc.)" ;
+    rdfs:domain [ a owl:Class ; owl:unionOf (ex:Product ex:Project ex:Asset) ] ;
+    rdfs:range [ a owl:Class ; owl:unionOf (ex:Product ex:Project ex:Asset) ] ;
+    owl:inverseOf ex:supportedBy .
+
+ex:supportedBy a owl:ObjectProperty ;
+    rdfs:label "supported by" ;
+    rdfs:comment "Inverse of dependsOn: entity supports other entities" ;
+    rdfs:domain [ a owl:Class ; owl:unionOf (ex:Product ex:Project ex:Asset) ] ;
+    rdfs:range [ a owl:Class ; owl:unionOf (ex:Product ex:Project ex:Asset) ] .
+
+ex:usesAsset a owl:ObjectProperty ;
+    rdfs:label "uses asset" ;
+    rdfs:comment "Project or product uses an asset" ;
+    rdfs:domain [ a owl:Class ; owl:unionOf (ex:Product ex:Project) ] ;
+    rdfs:range ex:Asset ;
+    owl:inverseOf ex:usedBy .
+
+ex:usedBy a owl:ObjectProperty ;
+    rdfs:label "used by" ;
+    rdfs:comment "Asset is used by project or product" ;
+    rdfs:domain ex:Asset ;
+    rdfs:range [ a owl:Class ; owl:unionOf (ex:Product ex:Project) ] .

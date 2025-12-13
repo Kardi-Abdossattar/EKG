@@ -1,0 +1,16 @@
+# ============================================================
+# Sanity Check: Duplicate Email Addresses
+# Description: Detects Person entities with duplicate email addresses
+# Expected: 0 results (email should be unique per person)
+# ============================================================
+
+PREFIX ex: <http://example.com/schema#>
+
+SELECT ?email (COUNT(?person) AS ?count) (GROUP_CONCAT(?person; separator=", ") AS ?persons)
+WHERE {
+    ?person a ex:Person ;
+            ex:email ?email .
+}
+GROUP BY ?email
+HAVING (COUNT(?person) > 1)
+ORDER BY DESC(?count)

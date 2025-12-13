@@ -1,0 +1,53 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+# Generated from products.csv
+# Job ID: job_initial
+# Generated at: 2025-12-13T03:38:08.132348Z
+
+ex:PROD_API a ex:Product ;
+    ex:name "Enterprise API Platform" ;
+    ex:description "Core API gateway and microservices platform" ;
+    ex:status "active" ;
+    ex:ownedBy ex:OU_ENG ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-09-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/products.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:PROD_CRM a ex:Product ;
+    ex:name "Customer Relationship Manager" ;
+    ex:description "CRM system for sales tracking" ;
+    ex:status "active" ;
+    ex:ownedBy ex:OU_SALES ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-08-15T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/products.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:PROD_HR a ex:Product ;
+    ex:name "HR Management System" ;
+    ex:description "Employee records and payroll system" ;
+    ex:status "active" ;
+    ex:ownedBy ex:OU_HR ;
+    ex:label <http://example.com/schema#Confidential> ;
+    ex:validFrom "2025-07-01T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/products.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+
+ex:PROD_ANALYTICS a ex:Product ;
+    ex:name "Business Analytics Suite" ;
+    ex:description "Data analytics and reporting platform" ;
+    ex:status "development" ;
+    ex:ownedBy ex:OU_PROD ;
+    ex:label <http://example.com/schema#Internal> ;
+    ex:validFrom "2025-10-10T00:00:00Z"^^xsd:dateTime ;
+    prov:wasDerivedFrom "seed/products.csv" ;
+    ex:classifiedAt "2025-12-13T03:38:08.132348Z"^^xsd:dateTime ;
+    prov:generatedAtTime "2025-12-13T03:38:08.132348Z"^^xsd:dateTime .
+

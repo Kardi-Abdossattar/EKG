@@ -1,0 +1,246 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
+import { hasAccess } from '../auth/security-clearance.guard';
+import { CacheService } from '../cache/cache.service';
+
+export interface SparqlQueryOptions {
+  userClearances?: string[];
+  filterByLabel?: boolean;
+  limit?: number;
+  offset?: number;
+  useCache?: boolean;
+}
+
+@Injectable()
+export class SparqlService {
+  private readonly logger = new Logger(SparqlService.name);
+  private readonly graphdbUrl: string;
+  private readonly repositoryId: string;
+
+  // Statistiques pour monitoring
+  private stats = {
+    totalQueries: 0,
+    cacheHits: 0,
+    cacheMisses: 0,
+    avgResponseTime: 0,
+    errors: 0,
+  };
+
+  constructor(
+    private configService: ConfigService,
+    private cacheService: CacheService,
+  ) {
+    this.graphdbUrl = this.configService.get<string>('GRAPHDB_URL') || 'http://graphdb:7200';
+    this.repositoryId = this.configService.get<string>('GRAPHDB_REPOSITORY') || 'ekg';
+  }
+
+  async query(sparql: string, options: SparqlQueryOptions = {}): Promise<any> {
+    const { userClearances, filterByLabel = true, useCache = true } = options;
+    const startTime = Date.now();
+    this.stats.totalQueries++;
+
+    let enhancedQuery = sparql;
+
+    if (filterByLabel && userClearances && userClearances.length > 0) {
+      enhancedQuery = this.injectLabelFilter(sparql, userClearances);
+    }
+
+    // Vérifier le cache si activé
+    if (useCache) {
+      const cacheKey = this.cacheService.generateKey(
+        'sparql:query',
+        enhancedQuery,
+        { userClearances, filterByLabel },
+      );
+      const cached = await this.cacheService.get(cacheKey);
+
+      if (cached) {
+        this.stats.cacheHits++;
+        const elapsed = Date.now() - startTime;
+        this.logger.debug(`Cache HIT for query (${elapsed}ms)`);
+        return cached;
+      }
+      this.stats.cacheMisses++;
+    }
+
+    this.logger.debug(`Executing SPARQL query:\n${enhancedQuery}`);
+
+    try {
+      const response = await axios.post(
+        `${this.graphdbUrl}/repositories/${this.repositoryId}`,
+        enhancedQuery,
+        {
+          headers: {
+            'Content-Type': 'application/sparql-query',
+            Accept: 'application/sparql-results+json',
+          },
+          timeout: 30000,
+        },
+      );
+
+      const elapsed = Date.now() - startTime;
+      this.updateAvgResponseTime(elapsed);
+      this.logger.log(`SPARQL query executed in ${elapsed}ms`);
+
+      let result = response.data;
+
+      if (filterByLabel && userClearances) {
+        result = this.postFilterResults(result, userClearances);
+      }
+
+      // Mettre en cache si activé (TTL: 5 minutes)
+      if (useCache) {
+        const cacheKey = this.cacheService.generateKey(
+          'sparql:query',
+          enhancedQuery,
+          { userClearances, filterByLabel },
+        );
+        await this.cacheService.set(cacheKey, result, 300);
+      }
+
+      return result;
+    } catch (error) {
+      this.stats.errors++;
+      this.logger.error(`SPARQL query error: ${error.message}`);
+      throw error;
+    }
+  }
+
+  async update(sparql: string): Promise<void> {
+    this.logger.debug(`Executing SPARQL update:\n${sparql}`);
+
+    try {
+      await axios.post(`${this.graphdbUrl}/repositories/${this.repositoryId}/statements`, sparql, {
+        headers: {
+          'Content-Type': 'application/sparql-update',
+        },
+        timeout: 60000,
+      });
+
+      // Invalider le cache après mutation
+      await this.cacheService.delPattern('sparql:query:*');
+      this.logger.log('Cache invalidated after SPARQL update');
+    } catch (error) {
+      this.logger.error(`SPARQL update error: ${error.message}`);
+      throw error;
+    }
+  }
+
+  getStats(): any {
+    return {
+      ...this.stats,
+      cacheHitRate:
+        this.stats.totalQueries > 0
+          ? ((this.stats.cacheHits / this.stats.totalQueries) * 100).toFixed(2) + '%'
+          : '0%',
+    };
+  }
+
+  private updateAvgResponseTime(elapsed: number): void {
+    const total = this.stats.avgResponseTime * (this.stats.totalQueries - 1);
+    this.stats.avgResponseTime = (total + elapsed) / this.stats.totalQueries;
+  }
+
+  private injectLabelFilter(sparql: string, userClearances: string[]): string {
+    const clearanceFilter = userClearances.map((c) => `ex:${c}`).join(', ');
+
+    const labelFilterClause = `
+    OPTIONAL { ?entity ex:label ?securityLabel }
+    FILTER (!BOUND(?securityLabel) || ?securityLabel IN (${clearanceFilter}))
+    `;
+
+    if (sparql.includes('WHERE {')) {
+      return sparql.replace(/WHERE\s*{/, `WHERE {\n${labelFilterClause}`);
+    }
+
+    return sparql;
+  }
+
+  private postFilterResults(data: any, userClearances: string[]): any {
+    if (!data || !data.results || !data.results.bindings) {
+      return data;
+    }
+
+    const filteredBindings = data.results.bindings.filter((binding: any) => {
+      if (!binding.securityLabel) {
+        return true;
+      }
+
+      const labelValue = binding.securityLabel.value;
+      const labelName = labelValue.split('#').pop();
+
+      return hasAccess(userClearances, labelName);
+    });
+
+    return {
+      ...data,
+      results: {
+        ...data.results,
+        bindings: filteredBindings,
+      },
+    };
+  }
+
+  buildPersonQuery(options: SparqlQueryOptions = {}): string {
+    const { limit = 100, offset = 0 } = options;
+
+    return `
+      PREFIX ex: <http://example.com/schema#>
+      PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+      SELECT ?person ?fullName ?email ?orgUnit ?role ?label
+      WHERE {
+        ?person a ex:Person ;
+                ex:fullName ?fullName ;
+                ex:email ?email ;
+                ex:worksFor ?orgUnit ;
+                ex:role ?role .
+        OPTIONAL { ?person ex:label ?label }
+      }
+      ORDER BY ?fullName
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `;
+  }
+
+  buildOrgUnitQuery(options: SparqlQueryOptions = {}): string {
+    const { limit = 100, offset = 0 } = options;
+
+    return `
+      PREFIX ex: <http://example.com/schema#>
+
+      SELECT ?orgUnit ?name ?parentUnit
+      WHERE {
+        ?orgUnit a ex:OrgUnit ;
+                 ex:name ?name .
+        OPTIONAL { ?orgUnit ex:parentUnit ?parentUnit }
+      }
+      ORDER BY ?name
+      LIMIT ${limit}
+      OFFSET ${offset}
+    `;
+  }
+
+  buildQuarantineQuery(): string {
+    return `
+      PREFIX ex: <http://example.com/schema#>
+      PREFIX sh: <http://www.w3.org/ns/shacl#>
+
+      SELECT ?entity ?type ?property ?value ?violationMessage
+      WHERE {
+        GRAPH <http://example.com/quarantine> {
+          ?entity a ?type .
+          OPTIONAL { ?entity ?property ?value }
+        }
+        OPTIONAL {
+          ?report sh:result ?result .
+          ?result sh:focusNode ?entity ;
+                  sh:resultMessage ?violationMessage .
+        }
+      }
+      ORDER BY ?entity
+      LIMIT 100
+    `;
+  }
+}

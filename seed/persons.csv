@@ -1,0 +1,9 @@
+id,fullName,email,orgUnitId,role,label,validFrom,hasRole
+P_Ali,Ali Karim,ali.karim@example.com,OU_ENG,Senior Engineer,Internal,2025-10-01T00:00:00Z,Curator
+P_Sara,Sara Batta,sara.batta@example.com,OU_HR,HR Specialist,Confidential,2025-10-15T00:00:00Z,Steward
+P_John,John Smith,john.smith@example.com,OU_SALES,Sales Manager,Internal,2025-09-15T00:00:00Z,Viewer
+P_Maria,Maria Garcia,maria.garcia@example.com,OU_PROD,Product Owner,Internal,2025-10-20T00:00:00Z,Curator
+P_Chen,Chen Wei,chen.wei@example.com,OU_IT,DevOps Lead,Internal,2025-10-01T00:00:00Z,Admin
+P_Emma,Emma Wilson,emma.wilson@example.com,OU_FIN,CFO,Secret,2025-09-01T00:00:00Z,Admin
+P_Raj,Raj Patel,raj.patel@example.com,OU_ENG,Junior Developer,Internal,2025-11-01T00:00:00Z,Viewer
+P_Lina,Lina Andersson,lina.andersson@example.com,OU_PROD,UX Designer,Internal,2025-10-25T00:00:00Z,Curator

@@ -1,0 +1,179 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# ============================================================
+# EKG Provenance Ontology (v0.1)
+# Date: 2025-11-22
+# Description: PROV-O extensions for lineage, trust scoring, and audit
+# ============================================================
+
+<http://example.com/schema/provenance> a owl:Ontology ;
+    dcterms:title "EKG Provenance Ontology" ;
+    dcterms:description "Extensions to PROV-O for data lineage, trust scores, and audit trails" ;
+    dcterms:created "2025-11-22"^^xsd:date ;
+    dcterms:creator "EKG Team" ;
+    owl:versionInfo "0.1" ;
+    owl:imports <http://example.com/schema#>, <http://www.w3.org/ns/prov#> .
+
+# ============================================================
+# CLASSES - Data Sources & Ingestion
+# ============================================================
+
+ex:DataSource a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Data Source" ;
+    rdfs:comment "External or internal data source (CSV, API, database, etc.)" .
+
+ex:IngestionJob a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Ingestion Job" ;
+    rdfs:comment "ETL job or pipeline that ingested data into the graph" .
+
+ex:ValidationActivity a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Validation Activity" ;
+    rdfs:comment "SHACL or sanity check validation activity" .
+
+ex:CurationActivity a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Curation Activity" ;
+    rdfs:comment "Manual review/correction activity by a curator" .
+
+# ============================================================
+# PROPERTIES - Source & Lineage
+# ============================================================
+
+ex:sourceFile a owl:DatatypeProperty ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:label "source file" ;
+    rdfs:comment "Original file path or URL that data was derived from" ;
+    rdfs:range xsd:string .
+
+ex:sourceSystem a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:label "source system" ;
+    rdfs:comment "Source system or database entity was extracted from" ;
+    rdfs:range ex:DataSource .
+
+ex:ingestedBy a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasGeneratedBy ;
+    rdfs:label "ingested by" ;
+    rdfs:comment "Ingestion job that generated this entity" ;
+    rdfs:range ex:IngestionJob .
+
+ex:jobId a owl:DatatypeProperty ;
+    rdfs:label "job ID" ;
+    rdfs:comment "Unique identifier for ETL job or DAG run" ;
+    rdfs:domain ex:IngestionJob ;
+    rdfs:range xsd:string .
+
+ex:dagId a owl:DatatypeProperty ;
+    rdfs:label "DAG ID" ;
+    rdfs:comment "Airflow DAG identifier" ;
+    rdfs:domain ex:IngestionJob ;
+    rdfs:range xsd:string .
+
+ex:runId a owl:DatatypeProperty ;
+    rdfs:label "run ID" ;
+    rdfs:comment "Airflow run identifier (execution date)" ;
+    rdfs:domain ex:IngestionJob ;
+    rdfs:range xsd:string .
+
+# ============================================================
+# PROPERTIES - Trust & Quality Scoring
+# ============================================================
+
+ex:trustScore a owl:DatatypeProperty ;
+    rdfs:label "trust score" ;
+    rdfs:comment "ML-computed trust score [0,1] based on embeddings and anomaly detection" ;
+    rdfs:range xsd:decimal .
+
+ex:trustScoreComputedAt a owl:DatatypeProperty ;
+    rdfs:subPropertyOf prov:generatedAtTime ;
+    rdfs:label "trust score computed at" ;
+    rdfs:comment "Timestamp when trust score was calculated" ;
+    rdfs:range xsd:dateTime .
+
+ex:trustScoreMethod a owl:DatatypeProperty ;
+    rdfs:label "trust score method" ;
+    rdfs:comment "Algorithm used to compute trust score (e.g., 'TransE+IsolationForest')" ;
+    rdfs:range xsd:string .
+
+ex:anomalyScore a owl:DatatypeProperty ;
+    rdfs:label "anomaly score" ;
+    rdfs:comment "Anomaly detection score (higher = more anomalous)" ;
+    rdfs:range xsd:decimal .
+
+ex:qualityFlags a owl:DatatypeProperty ;
+    rdfs:label "quality flags" ;
+    rdfs:comment "Comma-separated quality issue flags (e.g., 'missing_email,low_trust')" ;
+    rdfs:range xsd:string .
+
+# ============================================================
+# PROPERTIES - Validation & Audit
+# ============================================================
+
+ex:validatedBy a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasInfluencedBy ;
+    rdfs:label "validated by" ;
+    rdfs:comment "Validation activity that checked this entity" ;
+    rdfs:range ex:ValidationActivity .
+
+ex:validationResult a owl:DatatypeProperty ;
+    rdfs:label "validation result" ;
+    rdfs:comment "Validation outcome: 'conforms', 'violation', 'warning'" ;
+    rdfs:range xsd:string .
+
+ex:validationMessage a owl:DatatypeProperty ;
+    rdfs:label "validation message" ;
+    rdfs:comment "Human-readable validation message (e.g., SHACL violation details)" ;
+    rdfs:range xsd:string .
+
+ex:curatedBy a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasAttributedTo ;
+    rdfs:label "curated by" ;
+    rdfs:comment "Person who manually reviewed/corrected this entity" ;
+    rdfs:range ex:Person .
+
+ex:curatedAt a owl:DatatypeProperty ;
+    rdfs:subPropertyOf prov:generatedAtTime ;
+    rdfs:label "curated at" ;
+    rdfs:comment "Timestamp when curation occurred" ;
+    rdfs:range xsd:dateTime .
+
+ex:curationNotes a owl:DatatypeProperty ;
+    rdfs:label "curation notes" ;
+    rdfs:comment "Curator's notes explaining changes or validation decisions" ;
+    rdfs:range xsd:string .
+
+# ============================================================
+# PROPERTIES - Source Reputation
+# ============================================================
+
+ex:sourceReputation a owl:DatatypeProperty ;
+    rdfs:label "source reputation" ;
+    rdfs:comment "Historical reliability score of data source [0,1]" ;
+    rdfs:domain ex:DataSource ;
+    rdfs:range xsd:decimal .
+
+ex:sourceType a owl:DatatypeProperty ;
+    rdfs:label "source type" ;
+    rdfs:comment "Type of data source: 'csv', 'api', 'database', 'manual'" ;
+    rdfs:domain ex:DataSource ;
+    rdfs:range xsd:string .
+
+ex:lastUpdated a owl:DatatypeProperty ;
+    rdfs:subPropertyOf prov:generatedAtTime ;
+    rdfs:label "last updated" ;
+    rdfs:comment "Timestamp of last update to entity" ;
+    rdfs:range xsd:dateTime .
+
+ex:updateFrequency a owl:DatatypeProperty ;
+    rdfs:label "update frequency" ;
+    rdfs:comment "Expected update interval for this entity (e.g., 'daily', 'weekly')" ;
+    rdfs:range xsd:string .

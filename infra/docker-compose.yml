@@ -1,0 +1,421 @@
+# EKG Sécurisé & Fiable - Infrastructure de base (TEP-00_INIT)
+# Services: GraphDB, Airflow, Keycloak, API Gateway, Prometheus, Grafana
+
+networks:
+  ekg-network:
+    driver: bridge
+
+volumes:
+  graphdb-data:
+  graphdb-import:
+  postgres-data:
+  airflow-logs:
+  keycloak-data:
+  prometheus-data:
+  grafana-data:
+  redis-data:
+
+services:
+  # =============================================================================
+  # TRIPLESTORE: GraphDB Community Edition
+  # =============================================================================
+  graphdb:
+    image: ontotext/graphdb:10.8.1
+    container_name: ekg-graphdb
+    hostname: graphdb
+    networks:
+      - ekg-network
+    ports:
+      - "7200:7200"
+    volumes:
+      - graphdb-data:/opt/graphdb/home
+      - graphdb-import:/root/graphdb-import
+    environment:
+      GDB_JAVA_OPTS: >-
+        -Xmx2g -Xms1g
+        -Dgraphdb.connector.port=7200
+        -Dgraphdb.workbench.cors.enable=true
+        -Dgraphdb.workbench.importDirectory=/root/graphdb-import
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:7200/rest/repositories || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+  # =============================================================================
+  # DATABASE: PostgreSQL (Airflow metadata & Keycloak)
+  # =============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: ekg-postgres
+    hostname: postgres
+    networks:
+      - ekg-network
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ekg_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMe123!}
+      POSTGRES_DB: ${POSTGRES_DB:-ekg_meta}
+      AIRFLOW_DB: ${AIRFLOW_DB:-airflow}
+      KEYCLOAK_DB: ${KEYCLOAK_DB:-keycloak}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ekg_admin -d ekg_meta"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # =============================================================================
+  # ORCHESTRATION: Apache Airflow (webserver, scheduler, worker)
+  # =============================================================================
+  airflow-init:
+    image: apache/airflow:2.10.3-python3.11
+    container_name: ekg-airflow-init
+    networks:
+      - ekg-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-ekg_admin}:${POSTGRES_PASSWORD:-ChangeMe123!}@postgres:5432/${AIRFLOW_DB:-airflow}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=}
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-airflow_secret_key_change_me}
+      _AIRFLOW_DB_MIGRATE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_USER:-admin}
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_PASSWORD:-admin}
+    volumes:
+      - airflow-logs:/opt/airflow/logs
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username $${_AIRFLOW_WWW_USER_USERNAME} \
+          --password $${_AIRFLOW_WWW_USER_PASSWORD} \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com || true
+
+  airflow-webserver:
+    image: apache/airflow:2.10.3-python3.11
+    container_name: ekg-airflow-webserver
+    hostname: airflow-webserver
+    networks:
+      - ekg-network
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-ekg_admin}:${POSTGRES_PASSWORD:-ChangeMe123!}@postgres:5432/${AIRFLOW_DB:-airflow}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=}
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-airflow_secret_key_change_me}
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - airflow-logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./airflow/scripts:/opt/airflow/scripts
+      - ../seed:/opt/airflow/seed
+      - ../data:/opt/airflow/data
+      - ../tests:/opt/airflow/tests
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 80s
+    command: webserver
+    restart: unless-stopped
+
+  airflow-scheduler:
+    image: apache/airflow:2.10.3-python3.11
+    container_name: ekg-airflow-scheduler
+    hostname: airflow-scheduler
+    networks:
+      - ekg-network
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-ekg_admin}:${POSTGRES_PASSWORD:-ChangeMe123!}@postgres:5432/${AIRFLOW_DB:-airflow}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=}
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - airflow-logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./airflow/scripts:/opt/airflow/scripts
+      - ../seed:/opt/airflow/seed
+      - ../data:/opt/airflow/data
+      - ../tests:/opt/airflow/tests
+    healthcheck:
+      test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname $${HOSTNAME} 2>/dev/null | grep -q 'alive job' || exit 1"]
+      interval: 45s
+      timeout: 20s
+      retries: 3
+      start_period: 80s
+    command: scheduler
+    restart: unless-stopped
+
+  # =============================================================================
+  # SECURITY: Keycloak (OIDC)
+  # =============================================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.7
+    container_name: ekg-keycloak
+    networks:
+      - ekg-network
+    ports:
+      - "8180:8080"
+      - "9001:9000"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ekg_admin
+      KC_DB_PASSWORD: admin
+      KC_HOSTNAME_URL: http://localhost:8180
+      KC_PROXY: edge
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+      - ./realm-export.json:/opt/keycloak/data/import/realm-export.json
+    command:
+      - start-dev
+      - --import-realm
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q 'UP' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # =============================================================================
+  # API GATEWAY: Node.js (squelette NestJS)
+  # =============================================================================
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    image: ekg-api-gateway:latest
+    container_name: ekg-api-gateway
+    hostname: api-gateway
+    networks:
+      - ekg-network
+    depends_on:
+      graphdb:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: 3000
+      GRAPHDB_URL: ${GRAPHDB_URL:-http://graphdb:7200}
+      GRAPHDB_REPOSITORY: ${GRAPHDB_REPOSITORY:-ekg}
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-http://keycloak:8080}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-ekg}
+      KEYCLOAK_HEALTH_URL: http://keycloak:9000/health 
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ekg-api}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-changeme}
+    volumes:
+      - ./api-gateway:/app
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+
+  # =============================================================================
+  # OBSERVABILITY: Prometheus Pushgateway
+  # =============================================================================
+  pushgateway:
+    image: prom/pushgateway:v1.10.0
+    container_name: ekg-pushgateway
+    hostname: pushgateway
+    networks:
+      - ekg-network
+    ports:
+      - "9091:9091"
+    command:
+      - '--web.listen-address=:9091'
+      - '--persistence.file=/data/pushgateway.data'
+      - '--persistence.interval=5m'
+    volumes:
+      - prometheus-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9091/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # =============================================================================
+  # OBSERVABILITY: Prometheus
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    container_name: ekg-prometheus
+    hostname: prometheus
+    networks:
+      - ekg-network
+    depends_on:
+      - pushgateway
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts:/etc/prometheus/alerts
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # =============================================================================
+  # CACHE: Redis (pour cache de requêtes SPARQL)
+  # =============================================================================
+  redis:
+    image: redis:7.4-alpine
+    container_name: ekg-redis
+    hostname: redis
+    networks:
+      - ekg-network
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # =============================================================================
+  # OBSERVABILITY: Grafana
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:11.3.1
+    container_name: ekg-grafana
+    hostname: grafana
+    networks:
+      - ekg-network
+    depends_on:
+      - prometheus
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: ''
+      GF_SERVER_ROOT_URL: http://localhost:3001
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+  neo4j:
+    image: neo4j:5.15
+    container_name: ekg-neo4j
+    networks:
+      - ekg-network
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/password
+      NEO4J_PLUGINS: '["n10s", "apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "n10s.*,apoc.*"
+      NEO4J_dbms_security_procedures_allowlist: "n10s.*,apoc.*"
+      # Enable APOC for periodic sync
+      NEO4J_apoc_import_file_enabled: "true"
+      NEO4J_apoc_trigger_enabled: "true"
+    volumes:
+      - ./neo4j/plugins:/var/lib/neo4j/plugins
+      - ./neo4j/data:/data
+    depends_on:
+      graphdb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p password 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  # =============================================================================
+  # NEO4J AUTO-SYNC: Standalone service for automatic GraphDB → Neo4j sync
+  # Runs continuously, checking for changes every 30 seconds
+  # =============================================================================
+  neo4j-autosync:
+    build:
+      context: ./neo4j-sync
+      dockerfile: Dockerfile
+    image: ekg-neo4j-autosync:latest
+    container_name: ekg-neo4j-autosync
+    networks:
+      - ekg-network
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      graphdb:
+        condition: service_healthy
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASS: password
+      GRAPHDB_URL: http://graphdb:7200
+      GRAPHDB_REPO: ekg
+      SYNC_INTERVAL: "30"
+    restart: unless-stopped

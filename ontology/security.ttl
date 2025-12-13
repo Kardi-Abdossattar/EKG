@@ -1,0 +1,123 @@
+@prefix ex: <http://example.com/schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# ============================================================
+# EKG Security Ontology (v0.1)
+# Date: 2025-11-22
+# Description: Security labels and classification for ABAC/RBAC
+# ============================================================
+
+<http://example.com/schema/security> a owl:Ontology ;
+    dcterms:title "EKG Security Ontology" ;
+    dcterms:description "Confidentiality labels and security classification for attribute-based access control" ;
+    dcterms:created "2025-11-22"^^xsd:date ;
+    dcterms:creator "EKG Team" ;
+    owl:versionInfo "0.1" ;
+    owl:imports <http://example.com/schema#> .
+
+# ============================================================
+# CLASSES - Security Labels
+# ============================================================
+
+ex:SecurityLabel a owl:Class ;
+    rdfs:label "Security Label" ;
+    rdfs:comment "Base class for confidentiality/classification labels used in ABAC" .
+
+ex:Public a ex:SecurityLabel ;
+    rdfs:label "Public" ;
+    rdfs:comment "Information accessible to all users (no restriction)" .
+
+ex:Internal a ex:SecurityLabel ;
+    rdfs:label "Internal" ;
+    rdfs:comment "Information accessible to all internal employees" .
+
+ex:Confidential a ex:SecurityLabel ;
+    rdfs:label "Confidential" ;
+    rdfs:comment "Sensitive information with restricted access (e.g., financial, HR)" .
+
+ex:Secret a ex:SecurityLabel ;
+    rdfs:label "Secret" ;
+    rdfs:comment "Highly sensitive information (e.g., trade secrets, strategic plans)" .
+
+# ============================================================
+# PROPERTIES - Security Metadata
+# ============================================================
+
+ex:label a owl:ObjectProperty ;
+    rdfs:label "security label" ;
+    rdfs:comment "Confidentiality classification label for an entity" ;
+    rdfs:range ex:SecurityLabel .
+
+ex:accessibleBy a owl:ObjectProperty ;
+    rdfs:label "accessible by" ;
+    rdfs:comment "Roles or persons authorized to access this entity" ;
+    rdfs:range [ a owl:Class ; owl:unionOf (ex:Person ex:Role) ] .
+
+ex:dataOwner a owl:ObjectProperty ;
+    rdfs:label "data owner" ;
+    rdfs:comment "Person or organizational unit responsible for data governance" ;
+    rdfs:range [ a owl:Class ; owl:unionOf (ex:Person ex:OrgUnit) ] .
+
+ex:classifiedAt a owl:DatatypeProperty ;
+    rdfs:label "classified at" ;
+    rdfs:comment "Timestamp when security classification was assigned" ;
+    rdfs:range xsd:dateTime .
+
+ex:classifiedBy a owl:ObjectProperty ;
+    rdfs:label "classified by" ;
+    rdfs:comment "Person who assigned the security classification" ;
+    rdfs:range ex:Person .
+
+# ============================================================
+# CLASSES - Roles (for RBAC)
+# ============================================================
+
+ex:Role a owl:Class ;
+    rdfs:label "Role" ;
+    rdfs:comment "User role for RBAC (role-based access control)" .
+
+ex:Viewer a ex:Role ;
+    rdfs:label "Viewer" ;
+    rdfs:comment "Read-only access to non-confidential data" .
+
+ex:Curator a ex:Role ;
+    rdfs:label "Curator" ;
+    rdfs:comment "Can review, validate, and edit data quality issues" .
+
+ex:Steward a ex:Role ;
+    rdfs:label "Steward" ;
+    rdfs:comment "Can manage data governance, classifications, and access policies" .
+
+ex:Admin a ex:Role ;
+    rdfs:label "Admin" ;
+    rdfs:comment "Full administrative access (schema, users, infrastructure)" .
+
+# ============================================================
+# PROPERTIES - User Roles
+# ============================================================
+
+ex:hasRole a owl:ObjectProperty ;
+    rdfs:label "has role" ;
+    rdfs:comment "Assigns a role to a person" ;
+    rdfs:domain ex:Person ;
+    rdfs:range ex:Role .
+
+ex:canAccessLabel a owl:ObjectProperty ;
+    rdfs:label "can access label" ;
+    rdfs:comment "Role can access entities with specific security label" ;
+    rdfs:domain ex:Role ;
+    rdfs:range ex:SecurityLabel .
+
+# ============================================================
+# AXIOMS - Default Access Policies
+# ============================================================
+
+# Define role-to-label access mappings
+ex:Viewer ex:canAccessLabel ex:Public .
+ex:Curator ex:canAccessLabel ex:Public, ex:Internal .
+ex:Steward ex:canAccessLabel ex:Public, ex:Internal, ex:Confidential .
+ex:Admin ex:canAccessLabel ex:Public, ex:Internal, ex:Confidential, ex:Secret .

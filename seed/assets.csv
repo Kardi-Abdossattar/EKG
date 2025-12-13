@@ -1,0 +1,5 @@
+id,name,assetType,location,ownedById,label,validFrom
+ASSET_DB01,Primary PostgreSQL Cluster,database,AWS us-east-1,OU_IT,Confidential,2025-08-01T00:00:00Z
+ASSET_CACHE01,Redis Cache Cluster,database,AWS eu-west-1,OU_IT,Internal,2025-08-15T00:00:00Z
+ASSET_SRV01,API Gateway Server,server,Azure westus2,OU_IT,Internal,2025-09-01T00:00:00Z
+ASSET_IP_ALGO,Proprietary ML Algorithm,ip,,OU_ENG,Secret,2025-06-01T00:00:00Z
