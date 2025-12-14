@@ -182,6 +182,9 @@ services:
     container_name: ekg-keycloak
     networks:
       - ekg-network
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8180:8080"
       - "9001:9000"
@@ -189,7 +192,7 @@ services:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: ekg_admin
-      KC_DB_PASSWORD: admin
+      KC_DB_PASSWORD: ChangeMe123!
       KC_HOSTNAME_URL: http://localhost:8180
       KC_PROXY: edge
       KC_HEALTH_ENABLED: "true"
