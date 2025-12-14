@@ -242,8 +242,10 @@ services:
       KEYCLOAK_HEALTH_URL: http://keycloak:9000/health 
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-ekg-api}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-changeme}
-    volumes:
-      - ./api-gateway:/app
+    # volumes:
+      # For development with hot-reload, uncomment:
+      # - ./api-gateway:/app
+      # - /app/node_modules
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1"]
       interval: 30s
@@ -390,11 +392,11 @@ services:
       graphdb:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u neo4j -p password 'RETURN 1' || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:7474 || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 90s
     restart: unless-stopped
 
   # =============================================================================

@@ -4,17 +4,25 @@
 
 set -e
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    -- Create Airflow database
-    CREATE DATABASE ${AIRFLOW_DB:-airflow};
-    GRANT ALL PRIVILEGES ON DATABASE ${AIRFLOW_DB:-airflow} TO ${POSTGRES_USER};
+echo "Checking and creating databases..."
 
-    -- Create Keycloak database
-    CREATE DATABASE ${KEYCLOAK_DB:-keycloak};
-    GRANT ALL PRIVILEGES ON DATABASE ${KEYCLOAK_DB:-keycloak} TO ${POSTGRES_USER};
-
-    -- Display created databases
-    \l
+# Function to create database if it doesn't exist
+create_db_if_not_exists() {
+    local db_name=$1
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        SELECT 'CREATE DATABASE $db_name'
+        WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$db_name')\gexec
+        GRANT ALL PRIVILEGES ON DATABASE $db_name TO $POSTGRES_USER;
 EOSQL
+}
 
-echo "✓ Databases created successfully: ${AIRFLOW_DB:-airflow}, ${KEYCLOAK_DB:-keycloak}"
+# Create Airflow database
+create_db_if_not_exists "${AIRFLOW_DB:-airflow}"
+echo "✓ Airflow database ready: ${AIRFLOW_DB:-airflow}"
+
+# Create Keycloak database
+create_db_if_not_exists "${KEYCLOAK_DB:-keycloak}"
+echo "✓ Keycloak database ready: ${KEYCLOAK_DB:-keycloak}"
+
+# Display all databases
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" -c "\l"
