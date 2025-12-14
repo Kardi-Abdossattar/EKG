@@ -23,7 +23,7 @@ function Wait-ForHealthy {
     Write-Host "⏳ Attente du démarrage de $Service..." -ForegroundColor Yellow
 
     while ($waited -lt $MaxWait) {
-        $status = docker-compose ps $Service | Select-String "(healthy)"
+        $status = docker-compose --env-file ./env/.env ps $Service | Select-String "(healthy)"
         if ($status) {
             Write-Host "✓ $Service est prêt!" -ForegroundColor Green
             return $true
@@ -41,7 +41,7 @@ function Wait-ForHealthy {
 Write-Host ""
 Write-Host "Phase 1/4: Démarrage de l'infrastructure de base" -ForegroundColor Cyan
 Write-Host "------------------------------------------------"
-docker-compose up -d postgres redis pushgateway
+docker-compose --env-file ./env/.env up -d postgres redis pushgateway
 Wait-ForHealthy -Service "postgres" -MaxWait 180
 Write-Host "✓ Phase 1 terminée" -ForegroundColor Green
 
@@ -50,7 +50,7 @@ Write-Host ""
 Write-Host "Phase 2/4: Démarrage de GraphDB et Prometheus" -ForegroundColor Cyan
 Write-Host "----------------------------------------------"
 Write-Host "⚠ GraphDB prend 5-6 minutes à démarrer la première fois" -ForegroundColor Yellow
-docker-compose up -d graphdb prometheus
+docker-compose --env-file ./env/.env up -d graphdb prometheus
 Wait-ForHealthy -Service "graphdb" -MaxWait 420
 Wait-ForHealthy -Service "prometheus" -MaxWait 60
 Write-Host "✓ Phase 2 terminée" -ForegroundColor Green
@@ -60,24 +60,24 @@ Write-Host ""
 Write-Host "Phase 3/4: Démarrage de Keycloak et Airflow" -ForegroundColor Cyan
 Write-Host "--------------------------------------------"
 Write-Host "⚠ Keycloak prend 5-6 minutes à démarrer la première fois" -ForegroundColor Yellow
-docker-compose up -d keycloak airflow-init
+docker-compose --env-file ./env/.env up -d keycloak airflow-init
 
 Wait-ForHealthy -Service "keycloak" -MaxWait 480
 
 Write-Host "⏳ Attente de la fin de l'initialisation Airflow..." -ForegroundColor Yellow
 Start-Sleep -Seconds 10
 
-docker-compose up -d airflow-webserver airflow-scheduler
+docker-compose --env-file ./env/.env up -d airflow-webserver airflow-scheduler
 Write-Host "✓ Phase 3 terminée" -ForegroundColor Green
 
 # Phase 4: Services Applicatifs
 Write-Host ""
 Write-Host "Phase 4/4: Démarrage de Neo4j, API Gateway, et Grafana" -ForegroundColor Cyan
 Write-Host "-------------------------------------------------------"
-docker-compose up -d neo4j
+docker-compose --env-file ./env/.env up -d neo4j
 Wait-ForHealthy -Service "neo4j" -MaxWait 120
 
-docker-compose up -d api-gateway neo4j-autosync grafana
+docker-compose --env-file ./env/.env up -d api-gateway neo4j-autosync grafana
 Wait-ForHealthy -Service "grafana" -MaxWait 60
 
 Write-Host ""
