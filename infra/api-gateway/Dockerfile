@@ -1,20 +1,37 @@
-FROM node:20-alpine AS base
+# =============================================================================
+# EKG API Gateway - Dockerfile (Multi-stage build)
+# =============================================================================
 
-# =============================================================================
-# EKG API Gateway - Dockerfile (squelette NestJS)
-# =============================================================================
+# Stage 1: Build
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Copy package files
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
 
-# Copy application code
+# Install ALL dependencies (including devDependencies for building)
+RUN npm ci
+
+# Copy source code
 COPY . .
 
 # Build TypeScript
 RUN npm run build
+
+# Stage 2: Production
+FROM node:20-alpine AS production
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
 
 # Expose port
 EXPOSE 3000
