@@ -44,20 +44,47 @@ docker-compose build
 
 ## Step 2: Start Services ⏱️ 15-20 min
 
-### Windows:
-```powershell
-cd infra
-.\start-ekg.ps1
-```
+Start services in phases to avoid dependency issues:
 
-### Linux/Mac:
+### Phase 1: Infrastructure Base
 ```bash
 cd infra
-chmod +x start-ekg.sh
-./start-ekg.sh
+docker-compose --env-file ./env/.env up -d postgres redis pushgateway
+```
+Wait ~3 minutes for PostgreSQL to be healthy.
+
+### Phase 2: Data Services
+```bash
+docker-compose --env-file ./env/.env up -d graphdb prometheus
+```
+⚠️ **GraphDB takes 5-6 minutes to start the first time** - wait for it to be healthy.
+
+### Phase 3: Authentication & ETL
+```bash
+docker-compose --env-file ./env/.env up -d keycloak airflow-init
+```
+⚠️ **Keycloak takes 5-6 minutes to start the first time** - wait for it to be healthy.
+
+Then start Airflow services:
+```bash
+docker-compose --env-file ./env/.env up -d airflow-webserver airflow-scheduler
 ```
 
-The script starts 12 services in the correct order and waits for healthy status.
+### Phase 4: Application Services
+```bash
+docker-compose --env-file ./env/.env up -d neo4j
+```
+Wait ~2 minutes for Neo4j to be healthy.
+
+```bash
+docker-compose --env-file ./env/.env up -d api-gateway neo4j-autosync grafana
+```
+
+### Check Service Health
+```bash
+docker-compose ps
+```
+All services should show "healthy" status.
 
 **Services running**:
 
@@ -299,11 +326,7 @@ docker-compose down -v
 ```
 
 ### Restart:
-```bash
-cd infra
-.\start-ekg.ps1  # Windows
-./start-ekg.sh   # Linux/Mac
-```
+Repeat the commands from Step 2 in order (Phase 1 through Phase 4).
 
 **Note**: Data persists in Docker volumes. No need to recreate repository or re-run DAG.
 
