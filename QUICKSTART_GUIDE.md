@@ -92,12 +92,35 @@ d:\2.0\
 ### Étape 3: Configuration de l'Environnement
 
 ```bash
-# Copier le fichier d'environnement (si disponible)
+# Se placer dans le dossier infra
+cd infra
+
+# Copier le fichier d'environnement d'exemple
 cp .env.example .env
 
 # Éditer les variables si nécessaire (optionnel pour un démarrage rapide)
 # Les valeurs par défaut sont prêtes à l'emploi
+#
+# IMPORTANT: Si vous changez les mots de passe, assurez-vous de mettre à jour:
+# - POSTGRES_PASSWORD (doit correspondre à KC_DB_PASSWORD pour Keycloak)
+# - KEYCLOAK_ADMIN_PASSWORD
+# - NEO4J_PASSWORD
+# - AIRFLOW_PASSWORD
 ```
+
+#### Variables d'Environnement Clés
+
+| Variable | Valeur par Défaut | Description |
+|----------|-------------------|-------------|
+| `POSTGRES_PASSWORD` | `ChangeMe123!` | Mot de passe PostgreSQL (DOIT correspondre au mot de passe Keycloak) |
+| `AIRFLOW_USER` | `admin` | Nom d'utilisateur Airflow |
+| `AIRFLOW_PASSWORD` | `admin` | Mot de passe Airflow |
+| `KEYCLOAK_ADMIN` | `admin` | Nom d'utilisateur admin Keycloak |
+| `KEYCLOAK_ADMIN_PASSWORD` | `admin` | Mot de passe admin Keycloak |
+| `NEO4J_PASSWORD` | `password` | Mot de passe Neo4j (utilisateur: neo4j) |
+| `SYNC_INTERVAL` | `30` | Intervalle de synchronisation GraphDB→Neo4j (secondes) |
+
+⚠️ **Note de Sécurité**: Pour un environnement de production, changez TOUS les mots de passe par défaut!
 
 ---
 
