@@ -144,19 +144,102 @@ Vous devriez voir:
 - `ekg-api-gateway:latest`
 - `ekg-neo4j-autosync:latest`
 
-### Étape 2: Démarrer les Services
+### Étape 2: Démarrer les Services (Ordre Contrôlé)
 
+⚠️ **IMPORTANT**: Ne PAS utiliser `docker-compose up -d` directement! Les dépendances complexes nécessitent un démarrage en plusieurs phases.
+
+#### Option A: Utiliser le Script Automatique (Recommandé)
+
+```bash
+# Sur Linux/Mac:
+chmod +x start-ekg.sh
+./start-ekg.sh
+
+# Sur Windows (PowerShell):
+.\start-ekg.ps1
+```
+
+Le script va automatiquement:
+- Démarrer les services dans le bon ordre
+- Attendre que chaque service soit prêt avant de passer au suivant
+- Afficher la progression en temps réel
+- Vous informer quand tout est prêt
+
+**⏱️ Durée totale**: 15-20 minutes (première fois), 5-8 minutes (redémarrages suivants)
+
+#### Option B: Démarrage Manuel (Étape par Étape)
+
+#### Phase 1: Services de Base (Infrastructure)
+**⏱️ Durée estimée**: 30 secondes
+
+```bash
+# Démarrer Postgres, Redis et Pushgateway
+docker-compose up -d postgres redis pushgateway
+
+# Attendre que Postgres soit prêt (environ 20-30 secondes)
+docker-compose logs postgres | grep "database system is ready"
+```
+
+#### Phase 2: Services de Données (GraphDB et Prometheus)
+**⏱️ Durée estimée**: 5-6 minutes
+
+```bash
+# Démarrer GraphDB et Prometheus
+docker-compose up -d graphdb prometheus
+
+# Attendre que GraphDB soit complètement démarré (5-6 minutes!)
+# Suivre les logs:
+docker-compose logs -f graphdb
+
+# Attendre ce message: "Started."
+# Puis Ctrl+C pour arrêter les logs
+```
+
+#### Phase 3: Services d'Authentification et ETL
+**⏱️ Durée estimée**: 6-7 minutes
+
+```bash
+# Démarrer Keycloak et Airflow
+docker-compose up -d keycloak airflow-init
+
+# Attendre que Keycloak démarre (5-6 minutes!)
+docker-compose logs -f keycloak
+
+# Attendre ce message: "Keycloak ... started"
+# Puis Ctrl+C pour arrêter les logs
+
+# Lancer Airflow webserver et scheduler
+docker-compose up -d airflow-webserver airflow-scheduler
+```
+
+#### Phase 4: Services Applicatifs (Neo4j, API, Grafana)
 **⏱️ Durée estimée**: 2-3 minutes
 
 ```bash
-# Démarrer tous les services en arrière-plan
-docker-compose up -d
+# Démarrer Neo4j
+docker-compose up -d neo4j
 
-# Suivre les logs (Ctrl+C pour quitter)
-docker-compose logs -f
+# Attendre que Neo4j démarre (90 secondes)
+docker-compose logs -f neo4j
+
+# Attendre ce message: "Started."
+# Puis Ctrl+C pour arrêter les logs
+
+# Démarrer l'API Gateway et le service de sync
+docker-compose up -d api-gateway neo4j-autosync
+
+# Démarrer Grafana
+docker-compose up -d grafana
 ```
 
-### Étape 3: Attendre que Tous les Services Soient Prêts
+#### Vérification Finale
+
+```bash
+# Vérifier que tous les services sont en cours d'exécution
+docker-compose ps
+```
+
+### Étape 3: Vérifier l'État des Services
 
 ```bash
 # Vérifier l'état des conteneurs
