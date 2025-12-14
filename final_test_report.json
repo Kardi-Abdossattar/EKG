@@ -1,6 +1,0 @@
-{
-  "status": "FAILED",
-  "reason": "Production SHACL rejected data",
-  "staging_count": 300,
-  "violations": 1
-}

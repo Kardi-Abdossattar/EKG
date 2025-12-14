@@ -1,462 +1,388 @@
-# EKG - Enterprise Knowledge Graph
+# EKG Quickstart Guide - 5 Simple Steps
 
-**Version 1.0 Final** | **Release Date**: December 2025
-
-Un système de graphe de connaissances d'entreprise sécurisé avec authentification RBAC/ABAC, validation SHACL, et synchronisation automatique.
-
----
-
-## 🚀 Démarrage Rapide
-
-**Vous voulez lancer le système maintenant?**
-
-➡️ **Consultez le [QUICKSTART_GUIDE.md](QUICKSTART_GUIDE.md)**
-
-Ce guide vous accompagne de A à Z:
-- ✅ Installation et prérequis
-- ✅ Construction des images Docker
-- ✅ Lancement des 12 services
-- ✅ Transformation et chargement des données
-- ✅ Vérification de chaque composant
-- ✅ Tests avec Postman
-- ✅ Dépannage
-
-**Durée estimée**: 30-45 minutes pour une première installation complète.
+**Version**: 2.0 Simplified  
+**Date**: 2025-12-14  
+**Duration**: 20-30 minutes total
 
 ---
 
-## 📚 Comprendre le Système
+## 🚀 5-Step Setup
 
-**Vous voulez comprendre l'architecture et les choix techniques?**
-
-➡️ **Consultez l'[ARCHITECTURE.md](ARCHITECTURE.md)**
-
-Cette documentation explique:
-- 🏗️ Architecture en 5 couches
-- 🔧 Chaque composant en détail (GraphDB, Neo4j, Keycloak, etc.)
-- 🔄 Flux de données (ETL, authentification, monitoring)
-- 🔐 Modèle de sécurité RBAC/ABAC
-- 📊 Modèle de données RDF/SHACL
-- 🤔 Décisions d'architecture (pourquoi GraphDB ET Neo4j?)
+1. **Build** → Docker images
+2. **Start** → Services with script
+3. **Create** → Empty GraphDB repository
+4. **Ingest** → Run Airflow DAG (automatic)
+5. **Verify** → Prometheus, Grafana, Neo4j, Keycloak
 
 ---
 
-## 🎯 Qu'est-ce que l'EKG?
+## Prerequisites
 
-L'**Enterprise Knowledge Graph (EKG)** est un système complet de gestion de connaissances qui permet de:
-
-1. **Intégrer** des données de sources multiples (CSV, APIs, bases de données)
-2. **Transformer** les données en RDF (Resource Description Framework)
-3. **Valider** la qualité avec SHACL (contraintes structurelles) et sanity checks (logique métier)
-4. **Sécuriser** l'accès avec authentification OAuth2 et filtrage par labels de sécurité
-5. **Interroger** via SPARQL (GraphDB) et Cypher (Neo4j)
-6. **Monitorer** les performances et la qualité des données en temps réel
-
----
-
-## 🌟 Fonctionnalités Clés
-
-### 🔐 Sécurité Multi-Niveaux
-- **OAuth2/OpenID Connect** via Keycloak
-- **RBAC** (Role-Based Access Control): 4 rôles (viewer, curator, steward, admin)
-- **ABAC** (Attribute-Based Access Control): Filtrage par security labels
-- **Audit trail** complet de toutes les opérations
-
-### 🔄 Synchronisation Automatique
-- **Neo4j auto-sync**: Synchronisation GraphDB → Neo4j toutes les 30 secondes
-- **Smart sync**: Détection de changements (ne sync que si nécessaire)
-- **Pas de scripts manuels**: Tout est automatisé
-
-### ✅ Validation de Qualité
-- **SHACL**: Validation structurelle (datatypes, cardinalités, patterns)
-- **Sanity checks**: Validation métier (duplicats, orphelins, incohérences)
-- **Score de qualité**: 0-100 calculé automatiquement
-- **Dashboards Grafana**: Visualisation en temps réel
-
-### 📊 Double Base de Données Graphe
-- **GraphDB** (RDF): Source de vérité, SPARQL, raisonnement OWL
-- **Neo4j** (Property Graph): Performances, visualisation, Cypher
-- **Meilleur des deux mondes**: Sémantique + performance
-
-### 🔁 Pipeline ETL Automatisé
-- **Apache Airflow**: Orchestration avec interface web
-- **6 étapes**: Extract → Transform → Validate → Sanity → Metrics → Quality
-- **Scheduling**: Daily (configurable à @hourly, @weekly, etc.)
-
-### 📈 Monitoring Complet
-- **Prometheus**: Collecte de métriques (GraphDB, API, système)
-- **Grafana**: 2 dashboards (Performance + Quality)
-- **Pushgateway**: Métriques custom from Airflow
-- **Auto-refresh**: Toutes les 30 secondes
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    UTILISATEURS (Postman, UI)                │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      ▼ HTTPS/REST + JWT
-┌─────────────────────────────────────────────────────────────┐
-│   SÉCURITÉ: Keycloak (OAuth2) + API Gateway (NestJS)        │
-│   • Authentification JWT                                     │
-│   • RBAC/ABAC Enforcement                                    │
-│   • Security Label Filtering                                 │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-        ┌─────────────┼─────────────┐
-        ▼             ▼             ▼
-┌─────────────┐ ┌──────────┐ ┌────────────┐
-│   GraphDB   │ │  Neo4j   │ │ PostgreSQL │
-│ (RDF Store) │ │ (Graph)  │ │ (Metadata) │
-│   SPARQL    │ │  Cypher  │ │  Airflow   │
-│   SHACL     │ │ Auto-Sync│ │  Keycloak  │
-└─────────────┘ └──────────┘ └────────────┘
-        ▲             ▲
-        │             │ Sync 30s
-        │      ┌──────┴──────┐
-        │      │ Neo4j-Sync  │
-        │      │  (Python)   │
-        │      └─────────────┘
-        │
-        ▼ ETL Daily
-┌─────────────────────────────────┐
-│   Airflow (Pipeline ETL)         │
-│   CSV → RDF → Validate → Load   │
-└─────────────────────────────────┘
-        │
-        ▼ Push Metrics
-┌─────────────────────────────────┐
-│   Prometheus + Grafana           │
-│   Monitoring & Dashboards        │
-└─────────────────────────────────┘
-```
-
----
-
-## 🛠️ Technologies
-
-| Composant | Technologie | Version | Port |
-|-----------|-------------|---------|------|
-| **RDF Triplestore** | Ontotext GraphDB | 10.8.1 | 7200 |
-| **Graph Database** | Neo4j | 5.15 | 7474, 7687 |
-| **Authentication** | Keycloak | 26.0.7 | 8180 |
-| **API Gateway** | NestJS (Node.js) | 10.x | 3000 |
-| **ETL Orchestration** | Apache Airflow | 2.10.3 | 8080 |
-| **Monitoring** | Prometheus | 3.0.1 | 9090 |
-| **Dashboards** | Grafana | 11.3.1 | 3001 |
-| **Relational DB** | PostgreSQL | 16 | 5432 |
-| **Cache** | Redis | 7.4 | 6379 |
-| **Metrics Gateway** | Pushgateway | 1.10.0 | 9091 |
-
----
-
-## 📦 Contenu du Repository
-
-```
-d:\2.0\
-├── 📄 README.md                    # Ce fichier
-├── 📄 QUICKSTART_GUIDE.md          # Guide de démarrage complet
-├── 📄 ARCHITECTURE.md              # Documentation architecture
-├── 📁 infra/                       # Infrastructure Docker
-│   ├── docker-compose.yml         # Configuration des 12 services
-│   ├── graphdb/                   # GraphDB config
-│   ├── neo4j/                     # Neo4j config
-│   ├── neo4j-sync/                # Service auto-sync Python
-│   ├── prometheus/                # Prometheus config
-│   ├── grafana/                   # Grafana dashboards
-│   ├── api-gateway/               # NestJS API
-│   └── airflow/                   # Airflow DAGs
-├── 📁 seed/                        # Données sources (CSV)
-│   ├── persons.csv
-│   ├── orgunits.csv
-│   ├── products.csv
-│   ├── assets.csv
-│   └── projects.csv
-├── 📁 data/                        # Données générées
-│   └── generated/                 # RDF Turtle files
-├── 📁 ontology/                    # Ontologies OWL
-│   ├── core.ttl
-│   ├── relations.ttl
-│   ├── security.ttl
-│   ├── temporal.ttl
-│   └── provenance.ttl
-├── 📁 shacl/                       # Contraintes SHACL
-│   ├── shapes_core.ttl
-│   ├── shapes_provenance.ttl
-│   ├── shapes_temporal.ttl
-│   └── shapes_security_fixed.ttl
-├── 📁 pipelines/                   # Airflow DAGs
-│   └── airflow_dags/
-│       └── ekg_ingest.py
-├── 📁 scripts/                     # Scripts Python
-│   ├── csv_to_rdf.py              # Transformation CSV→RDF
-│   ├── validate_shacl.py          # Validation SHACL
-│   └── quality_monitor.py         # Monitoring qualité
-├── 📁 tests/                       # Tests
-│   ├── TEP-05_postman_collection.json  # Collection Postman RBAC
-│   └── sanity/                    # Sanity checks SPARQL
-└── 📁 docs/                        # Documentation détaillée
-    ├── IMPORT_ORDER_GUIDE.md
-    ├── WALKTHROUGH_SIMPLIFIED.md
-    └── AUTO_REFRESH_GUIDE.md
-```
-
----
-
-## 🚦 Démarrage en 5 Minutes
-
-Si vous voulez juste voir le système fonctionner rapidement:
+- **Docker Desktop** 20.10+ (Windows/Mac) or **Docker Engine** (Linux)
+- **Docker Compose** 2.0+
+- **8 GB RAM minimum** (16 GB recommended)
+- **Ports available**: 3000, 3001, 5432, 6379, 7200, 7474, 7687, 8080, 8180, 9090, 9091
 
 ```bash
-# 1. Cloner le projet
-git clone <repository-url> ekg-project
-cd ekg-project
-git checkout release/v1.0-final
-
-# 2. Lancer tous les services
-cd infra
-docker-compose up -d
-
-# 3. Attendre que tout soit prêt (~2 minutes)
-docker-compose ps
-
-# 4. Vérifier GraphDB
-curl http://localhost:7200/repositories/ekg
-
-# 5. Vérifier l'API (devrait retourner 401 Unauthorized)
-curl http://localhost:3000/ekg/persons
+# Quick check
+docker --version
+docker-compose --version
 ```
 
-**Ensuite**, suivez le [QUICKSTART_GUIDE.md](QUICKSTART_GUIDE.md) pour charger les données et tester tout le système.
+---
+
+## Step 1: Build Images ⏱️ 10-15 min
+
+```bash
+cd ekg-project/infra
+docker-compose build
+```
+
+**Expected**: Images `ekg-api-gateway` and `ekg-neo4j-autosync` created
 
 ---
 
-## 🔐 Utilisateurs de Test
+## Step 2: Start Services ⏱️ 15-20 min
 
-Pour tester l'authentification avec Postman:
+### Windows:
+```powershell
+cd infra
+.\start-ekg.ps1
+```
 
-| Username | Password | Rôle | Peut Lire | Peut Écrire | Quarantine | Audit |
-|----------|----------|------|-----------|-------------|------------|-------|
-| alice.viewer | viewer123 | viewer | Public, Internal | ❌ | ❌ | ❌ |
-| bob.curator | curator123 | curator | + Confidential | ❌ | ✅ | ❌ |
-| carol.steward | steward123 | steward | + Secret | ✅ | ✅ | ❌ |
-| dave.admin | admin123 | admin | Tout | ✅ | ✅ | ✅ |
+### Linux/Mac:
+```bash
+cd infra
+chmod +x start-ekg.sh
+./start-ekg.sh
+```
 
-**Collection Postman**: `tests/TEP-05_postman_collection.json`
+The script starts 12 services in the correct order and waits for healthy status.
+
+**Services running**:
+
+| Service | Port | URL | Credentials |
+|---------|------|-----|-------------|
+| GraphDB | 7200 | http://localhost:7200 | - |
+| Neo4j | 7474 | http://localhost:7474 | neo4j / password |
+| Airflow | 8080 | http://localhost:8080 | admin / admin |
+| Keycloak | 8180 | http://localhost:8180 | admin / admin |
+| API Gateway | 3000 | http://localhost:3000 | (token protected) |
+| Prometheus | 9090 | http://localhost:9090 | - |
+| Grafana | 3001 | http://localhost:3001 | admin / admin |
 
 ---
 
-## 📊 Dashboards de Monitoring
+## Step 3: Create Empty Repository ⏱️ 2 min
 
-Une fois le système lancé, vous pouvez accéder à:
+1. Open http://localhost:7200
+2. **Setup** → **Repositories** → **Create new repository**
+3. Configuration:
+   - **Repository ID**: `ekg`
+   - **Ruleset**: `OWL-RL (Optimized)`
+   - **✅ Enable SHACL validation** (CHECK THIS!)
+4. Click **Create**
 
-### Grafana - Dashboards
-**URL**: http://localhost:3001 (admin/admin)
+**✅ Verify**: Repository `ekg` appears with 0 triples
 
-1. **EKG Performance Dashboard**
-   - Mémoire GraphDB (heap used vs max)
-   - CPU Load
-   - Espace disque disponible
-   - Taux de requêtes API
-   - Mémoire API Gateway
-   - État de santé des services
+---
 
-2. **EKG Quality Monitor**
-   - Score de qualité (0-100)
-   - Violations SHACL
-   - Résultats sanity checks
+## Step 4: Run DAG Pipeline ⏱️ 5-8 min
 
-### Prometheus - Métriques
+The Airflow DAG does **EVERYTHING automatically**:
+- Extract CSV → Transform to RDF → Validate SHACL
+- Run sanity checks → Collect metrics
+- **Import to GraphDB** (ontologies + SHACL + data)
+- Push metrics to Prometheus
+
+### Execute:
+
+1. Open http://localhost:8080
+2. Login: `admin` / `admin`
+3. Click **DAGs**
+4. Find `ekg_ingest_pipeline`
+5. **Toggle ON** (activate)
+6. Click **▶ Trigger DAG**
+
+### Monitor Progress:
+
+8 tasks execute in sequence:
+```
+extract_csv → transform_to_rdf → validate_shacl → sanity_checks → 
+collect_metrics → quality_monitor → import_to_graphdb → update_metrics
+```
+
+**✅ All tasks must be GREEN** (success)
+
+### Verify Import:
+
+```bash
+curl -s "http://localhost:7200/repositories/ekg/size"
+```
+
+**Expected**: ~798 triples
+
+---
+
+## Step 5: Verify Everything ⏱️ 5-10 min
+
+### 5.1 Prometheus Metrics
+
 **URL**: http://localhost:9090
 
-Requêtes utiles:
-```promql
-# Mémoire GraphDB
-graphdb_heap_used_mem
-
-# Services UP/DOWN
-up{job=~"graphdb|api-gateway"}
-
-# Score de qualité
-ekg_quality_score
+**Query**:
+```
+ekg_triple_count{job="ekg_post_import_metrics"}
 ```
 
-### Airflow - Pipeline ETL
-**URL**: http://localhost:8080 (admin/admin)
+**Expected**: Value = 798
 
-- Voir l'historique des exécutions du DAG `ekg_ingest`
-- Déclencher manuellement le pipeline
-- Consulter les logs de chaque tâche
-
-### Neo4j Browser
-**URL**: http://localhost:7474 (neo4j/password)
-
-- Visualiser le graphe
-- Exécuter des requêtes Cypher
-- Explorer les relations
-
-### GraphDB Workbench
-**URL**: http://localhost:7200
-
-- Explorer les triplets RDF
-- Exécuter des requêtes SPARQL
-- Valider avec SHACL
-
-### Keycloak Admin Console
-**URL**: http://localhost:8180 (admin/admin)
-
-- Gérer les utilisateurs
-- Configurer les rôles
-- Voir les tokens actifs
+**Check Status → Targets** (all should be UP):
+- ✅ prometheus
+- ✅ graphdb
+- ✅ graphdb-repository
+- ✅ api-gateway
+- ✅ pushgateway
 
 ---
 
-## 🎓 Cas d'Usage
+### 5.2 Grafana Dashboards
 
-### 1. Gestion des Employés
-```sparql
-# Trouver tous les employés d'une organisation
-PREFIX ex: <http://example.com/schema#>
+**URL**: http://localhost:3001  
+**Login**: admin / admin
 
-SELECT ?person ?name ?email ?role
-WHERE {
-  ?person a ex:Person ;
-          ex:fullName ?name ;
-          ex:email ?email ;
-          ex:role ?role ;
-          ex:worksFor ?org .
-  ?org ex:name "Engineering" .
-}
-```
+**2 Dashboards**:
 
-### 2. Audit de Provenance
-```sparql
-# Tracer l'origine des données
-PREFIX prov: <http://www.w3.org/ns/prov#>
+1. **EKG Performance**
+   - GraphDB Heap Memory
+   - CPU Load
+   - Disk Space
+   - API Gateway Requests
+   
+2. **EKG Quality**
+   - Quality Score: 100
+   - SHACL Violations: 0
+   - Triple Count: 798
+   - Sanity Issues: 0
 
-SELECT ?entity ?source ?timestamp
-WHERE {
-  ?entity prov:wasDerivedFrom ?source ;
-          prov:generatedAtTime ?timestamp .
-}
-ORDER BY DESC(?timestamp)
-```
-
-### 3. Recherche Multi-Critères
-```sparql
-# Personnes avec un rôle spécifique et un label de sécurité
-PREFIX ex: <http://example.com/schema#>
-
-SELECT ?person ?name
-WHERE {
-  ?person a ex:Person ;
-          ex:fullName ?name ;
-          ex:role "Software Engineer" ;
-          ex:label ex:Internal .
-}
-```
+**✅ All panels should display data**
 
 ---
 
-## 🐛 Support et Dépannage
+### 5.3 Neo4j Graph Visualization
 
-### Problèmes Courants
+**URL**: http://localhost:7474  
+**Login**: neo4j / password
 
-**Service ne démarre pas?**
+**Check Auto-Sync Logs**:
 ```bash
-docker-compose logs <nom-du-service>
+docker logs ekg-neo4j-autosync --tail 50
 ```
 
-**Port déjà utilisé?**
+**Expected**:
+```
+✓ Neo4j connected!
+✓ GraphDB connected!
+[2025-12-14] Change detected: 0 → 798 triples
+Syncing 798 triples...
+✓ Synced! Triples: 798
+```
+
+**Visualize Complete Graph** (1 connected graph):
+
+```cypher
+// Show ENTIRE graph in 1 visualization
+MATCH (n)-[r]->(m)
+WHERE NOT n:_GraphConfig 
+  AND NOT n:_NsPrefDef 
+  AND NOT m:_GraphConfig 
+  AND NOT m:_NsPrefDef
+RETURN n, r, m
+LIMIT 500
+```
+
+**Expected**: Connected graph showing:
+- 👥 Persons (ex__Person) - 8 nodes
+- 🏢 OrgUnits (ex__OrgUnit) - 6 nodes
+- 📦 Products (ex__Product) - 4 nodes
+- 💻 Assets (ex__Asset) - 4 nodes
+- 📁 Projects (ex__Project) - 3 nodes
+- Relationships: ex__worksFor, ex__manages, ex__usedIn, etc.
+
+**Count nodes by type**:
+```cypher
+MATCH (n)
+WHERE NOT n:_GraphConfig AND NOT n:_NsPrefDef
+RETURN labels(n) as type, count(*) as count
+ORDER BY count DESC
+```
+
+---
+
+### 5.4 Keycloak RBAC Testing with Postman
+
+**File**: `tests/TEP-05_postman_collection.json`
+
+#### Import Collection:
+
+1. Open **Postman**
+2. **Import** → Select `tests/TEP-05_postman_collection.json`
+3. Collection "TEP-05 EKG Security & Governance" imported
+
+#### Execute Tests (IN ORDER):
+
+**Step 1: Authentication** (get tokens)
+- ✅ Login as alice.viewer
+- ✅ Login as bob.curator
+- ✅ Login as carol.steward
+- ✅ Login as dave.admin
+
+**Step 2: Viewer Tests** (alice.viewer)
+- ✅ GET /ekg/persons → SUCCESS (sees Public + Internal)
+- ❌ GET /ekg/quarantine → 403 FORBIDDEN
+- ❌ POST /ekg/sparql/update → 403 FORBIDDEN
+
+**Step 3: Curator Tests** (bob.curator)
+- ✅ GET /ekg/persons → SUCCESS (sees + Confidential)
+- ✅ GET /ekg/quarantine → SUCCESS
+- ✅ POST /ekg/quarantine/approve → SUCCESS
+- ❌ POST /ekg/sparql/update → 403 FORBIDDEN
+
+**Step 4: Steward Tests** (carol.steward)
+- ✅ GET /ekg/persons → SUCCESS (sees + Secret)
+- ✅ POST /ekg/sparql/update → SUCCESS
+- ✅ GET /ekg/quarantine → SUCCESS
+
+**Step 5: Admin Tests** (dave.admin)
+- ✅ GET /ekg/persons → SUCCESS (full access)
+- ✅ GET /ekg/quarantine → SUCCESS
+- ✅ POST /ekg/sparql/update → SUCCESS
+- ✅ POST /ekg/sparql/query → SUCCESS
+
+**✅ ALL TESTS MUST PASS** (green in Postman)
+
+#### RBAC/ABAC Matrix:
+
+| User | Role | Clearance | Read | Quarantine | SPARQL Update |
+|------|------|-----------|------|------------|---------------|
+| alice.viewer | viewer | Public, Internal | ✅ | ❌ | ❌ |
+| bob.curator | curator | + Confidential | ✅ | ✅ | ❌ |
+| carol.steward | steward | + Secret | ✅ | ✅ | ✅ |
+| dave.admin | admin | + Secret | ✅ | ✅ | ✅ |
+
+---
+
+## ✅ Final Checklist
+
+- [x] **Step 1**: Docker images built
+- [x] **Step 2**: 12 services running and healthy
+- [x] **Step 3**: GraphDB repository `ekg` created (SHACL enabled)
+- [x] **Step 4**: Airflow DAG completed (8 tasks green)
+- [x] **Step 5.1**: Prometheus collects 798 triples
+- [x] **Step 5.2**: Grafana displays dashboards
+- [x] **Step 5.3**: Neo4j visualizes complete connected graph
+- [x] **Step 5.4**: Postman Keycloak RBAC tests pass
+
+**🎉 Your EKG is operational!**
+
+---
+
+## Stop & Restart
+
+### Stop All:
+```bash
+cd infra
+docker-compose down
+
+# ⚠️ Delete all data:
+docker-compose down -v
+```
+
+### Restart:
+```bash
+cd infra
+.\start-ekg.ps1  # Windows
+./start-ekg.sh   # Linux/Mac
+```
+
+**Note**: Data persists in Docker volumes. No need to recreate repository or re-run DAG.
+
+---
+
+## Troubleshooting
+
+### Service won't start:
+```bash
+docker-compose logs <service-name>
+```
+
+### DAG fails:
+1. Click red task in Airflow
+2. Read **Logs**
+3. Common errors:
+   - `Repository 'ekg' not found`: Create repository (Step 3)
+   - `SHACL validation failed`: Check CSV data
+   - Restart Airflow: `docker-compose restart airflow-scheduler airflow-webserver`
+
+### Neo4j not syncing:
+```bash
+docker logs ekg-neo4j-autosync --tail 100
+curl http://localhost:7200/repositories/ekg/size
+```
+
+### Grafana shows "No Data":
+```bash
+curl http://localhost:9090/-/healthy
+docker-compose restart grafana
+```
+
+### Port already in use:
 ```bash
 # Windows
 netstat -ano | findstr :7200
-
 # Linux/Mac
 lsof -i :7200
 ```
 
-**Neo4j ne se synchronise pas?**
+---
+
+## Useful Commands
+
 ```bash
-docker logs ekg-neo4j-autosync --tail 100
+# View all containers
+docker ps -a
+
+# Real-time logs
+docker-compose logs -f <service>
+
+# Restart a service
+docker-compose restart <service>
+
+# Shell access
+docker exec -it ekg-graphdb bash
+
+# Resource usage
+docker stats
+
+# GraphDB triple count
+curl http://localhost:7200/repositories/ekg/size
+
+# Neo4j cypher shell
+docker exec -it ekg-neo4j cypher-shell -u neo4j -p password
+
+# Prometheus targets
+curl -s http://localhost:9090/api/v1/targets
 ```
 
-**Grafana affiche "No Data"?**
-```bash
-# Vérifier que Prometheus scrape
-curl http://localhost:9090/api/v1/targets
-```
+---
 
-➡️ **Plus de détails**: Consultez la section "Dépannage" dans [QUICKSTART_GUIDE.md](QUICKSTART_GUIDE.md)
+## Next Steps
+
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed system architecture
+- [docs/WALKTHROUGH_COMPLET_A_Z.md](docs/WALKTHROUGH_COMPLET_A_Z.md) - In-depth tutorial
+- Develop new secured API routes
+- Add new ETL pipelines
 
 ---
 
-## 📖 Documentation Complète
-
-| Document | Description | Audience |
-|----------|-------------|----------|
-| [README.md](README.md) | Vue d'ensemble (ce fichier) | Tout le monde |
-| [QUICKSTART_GUIDE.md](QUICKSTART_GUIDE.md) | Installation de A à Z | DevOps, Développeurs |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Architecture technique | Architectes, Développeurs |
-| [docs/IMPORT_ORDER_GUIDE.md](docs/IMPORT_ORDER_GUIDE.md) | Import manuel GraphDB | Data Engineers |
-| [docs/AUTO_REFRESH_GUIDE.md](docs/AUTO_REFRESH_GUIDE.md) | Configuration auto-sync | DevOps |
-
----
-
-## 🤝 Contribution
-
-Ce projet est une version finale (v1.0). Pour toute modification:
-
-1. Créer une nouvelle branche depuis `release/v1.0-final`
-2. Faire vos changements
-3. Tester complètement (Postman, Airflow DAG, etc.)
-4. Créer une pull request avec description détaillée
-
----
-
-## 📝 License
-
-[À définir selon votre organisation]
-
----
-
-## 👥 Auteurs
-
-- **Équipe EKG** - Architecture et développement
-- **Claude Sonnet 4.5** - Assistance technique et documentation
-
----
-
-## 🎉 Remerciements
-
-Technologies open-source utilisées:
-- Ontotext GraphDB Community Edition
-- Neo4j Community Edition
-- Apache Airflow
-- Keycloak
-- Prometheus & Grafana
-- NestJS
-- PostgreSQL
-- Redis
-
----
-
-**Version**: 1.0 Final
-**Dernière mise à jour**: 2025-12-13
-**Support**: Consultez la documentation ou ouvrez une issue
-
----
-
-## 🚀 Prochaines Étapes
-
-Maintenant que vous avez lu cette introduction:
-
-1. **Déployer le système** → [QUICKSTART_GUIDE.md](QUICKSTART_GUIDE.md)
-2. **Comprendre l'architecture** → [ARCHITECTURE.md](ARCHITECTURE.md)
-3. **Tester l'API** → `tests/TEP-05_postman_collection.json`
-4. **Explorer les dashboards** → http://localhost:3001
-
-**Bonne exploration de votre Knowledge Graph! 📊🔗**
+**Version**: 2.0 Simplified - December 14, 2025
