@@ -40,8 +40,8 @@ services:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:7200/rest/repositories || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 90s
+      retries: 10
+      start_period: 360s
     restart: unless-stopped
 
   # =============================================================================
@@ -67,9 +67,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ekg_admin -d ekg_meta"]
       interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 180s
     restart: unless-stopped
 
   # =============================================================================
@@ -205,9 +205,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q 'UP' || exit 1"]
       interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      timeout: 15s
+      retries: 15
+      start_period: 420s
     restart: unless-stopped
 
   # =============================================================================
