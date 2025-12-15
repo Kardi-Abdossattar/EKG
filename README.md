@@ -36,7 +36,12 @@ copy env\.env.example env\.env   # Windows CMD
 # OR
 cp env/.env.example env/.env     # PowerShell/Linux/Mac
 ```
-
+then 
+```
+cd ekg-project/infra
+docker-compose build
+```
+**Expected**: Images `ekg-api-gateway` and `ekg-neo4j-autosync` created
 ### Step 2: Run Startup Script
 
 **Option A - PowerShell (Windows - Recommended):**
