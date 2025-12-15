@@ -1,0 +1,6 @@
+# Ensure shell scripts always use LF line endings (Unix format)
+# This prevents issues when cloning on Windows
+*.sh text eol=lf
+
+# Ensure PowerShell scripts use CRLF line endings (Windows format)
+*.ps1 text eol=crlf

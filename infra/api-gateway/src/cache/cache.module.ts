@@ -1,8 +1,9 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, forwardRef } from '@nestjs/common';
 import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { redisStore } from 'cache-manager-redis-yet';
 import { CacheService } from './cache.service';
+import { MetricsModule } from '../metrics/metrics.module';
 
 @Global()
 @Module({
@@ -28,6 +29,7 @@ import { CacheService } from './cache.service';
         };
       },
     }),
+    forwardRef(() => MetricsModule),
   ],
   providers: [CacheService],
   exports: [CacheService, NestCacheModule],

@@ -134,6 +134,8 @@ services:
       - ../seed:/opt/airflow/seed
       - ../data:/opt/airflow/data
       - ../tests:/opt/airflow/tests
+      - ../ontology:/opt/airflow/ontology
+      - ../shacl:/opt/airflow/shacl
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8080/health || exit 1"]
       interval: 30s
@@ -165,6 +167,8 @@ services:
       - ../seed:/opt/airflow/seed
       - ../data:/opt/airflow/data
       - ../tests:/opt/airflow/tests
+      - ../ontology:/opt/airflow/ontology
+      - ../shacl:/opt/airflow/shacl
     healthcheck:
       test: ["CMD-SHELL", "airflow jobs check --job-type SchedulerJob --hostname $${HOSTNAME} 2>/dev/null | grep -q 'alive job' || exit 1"]
       interval: 45s
@@ -201,7 +205,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     volumes:
       - keycloak-data:/opt/keycloak/data
-      - ./realm-export.json:/opt/keycloak/data/import/realm-export.json
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     command:
       - start-dev
       - --import-realm
