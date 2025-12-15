@@ -370,8 +370,8 @@ services:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 90s
     restart: unless-stopped
   neo4j:
     image: neo4j:5.15

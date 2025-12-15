@@ -118,7 +118,7 @@ docker-compose --env-file ./env/.env up -d neo4j
 Wait-ForHealthy -Service "neo4j" -MaxWait 120
 
 docker-compose --env-file ./env/.env up -d api-gateway neo4j-autosync grafana
-Wait-ForHealthy -Service "grafana" -MaxWait 60
+Wait-ForHealthy -Service "grafana" -MaxWait 120
 
 Write-Host ""
 Write-Host "=========================================" -ForegroundColor Green

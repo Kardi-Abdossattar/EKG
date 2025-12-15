@@ -1,18 +1,10 @@
-# EKG Quickstart Guide - 5 Simple Steps
+# EKG Platform - Quick Start Guide
 
-**Version**: 2.0 Simplified  
-**Date**: 2025-12-14  
-**Duration**: 20-30 minutes total
+**Version**: 2.0
+**Date**: 2025-12-15
+**Duration**: 20-30 minutes
 
----
-
-## 🚀 5-Step Setup
-
-1. **Build** → Docker images
-2. **Start** → Services with script
-3. **Create** → Empty GraphDB repository
-4. **Ingest** → Run Airflow DAG (automatic)
-5. **Verify** → Prometheus, Grafana, Neo4j, Keycloak
+Enterprise Knowledge Graph platform with automated RDF ingestion, SPARQL queries, and graph analytics.
 
 ---
 
@@ -23,43 +15,82 @@
 - **8 GB RAM minimum** (16 GB recommended)
 - **Ports available**: 3000, 3001, 5432, 6379, 7200, 7474, 7687, 8080, 8180, 9090, 9091
 
+Quick check:
 ```bash
-# Quick check
 docker --version
 docker-compose --version
 ```
 
 ---
 
-## Step 1: Build Images ⏱️ 10-15 min
+## Quick Start (Automated)
+
+### Step 1: Clone and Setup Environment
 
 ```bash
-cd ekg-project/infra
-docker-compose build
+git clone <repository-url>
+cd infra
+
+# Copy environment configuration
+copy env\.env.example env\.env   # Windows CMD
+# OR
+cp env/.env.example env/.env     # PowerShell/Linux/Mac
 ```
 
-**Expected**: Images `ekg-api-gateway` and `ekg-neo4j-autosync` created
+### Step 2: Run Startup Script
+
+**Option A - PowerShell (Windows - Recommended):**
+```powershell
+cd infra
+.\start-ekg.ps1
+```
+
+**Option B - Bash (Linux/Mac):**
+```bash
+cd infra
+./start-ekg.sh  # Coming soon - use manual commands below for now
+```
+
+The script will:
+- ✅ Start all services in the correct order
+- ✅ Wait for each service to be healthy before proceeding
+- ✅ Create databases automatically (PostgreSQL: airflow, keycloak)
+- ✅ Import Keycloak realm (EKG with roles)
+- ✅ Display all service URLs when ready
+
+**Duration**: ~15-20 minutes (includes GraphDB and Keycloak initialization)
 
 ---
 
-## Step 2: Start Services ⏱️ 15-20 min
+## Manual Start (Alternative)
 
-Start services in phases to avoid dependency issues:
+If you prefer manual control or the script fails:
 
-### Phase 1: Infrastructure Base
+### 1. Copy Environment File
+```bash
+# CMD
+copy env\.env.example env\.env
+
+# PowerShell/Linux/Mac
+cp env/.env.example env/.env
+```
+
+### 2. Start Services Phase by Phase
+
+**Phase 1: Infrastructure Base**
 ```bash
 cd infra
 docker-compose --env-file ./env/.env up -d postgres redis pushgateway
 ```
 Wait ~3 minutes for PostgreSQL to be healthy.
 
-### Phase 2: Data Services
+**Phase 2: Data Services**
 ```bash
 docker-compose --env-file ./env/.env up -d graphdb prometheus
 ```
 ⚠️ **GraphDB takes 5-6 minutes to start the first time** - wait for it to be healthy.
 
-### Phase 3: Authentication & ETL
+**Phase 3: Authentication & ETL**
 ```bash
 docker-compose --env-file ./env/.env up -d keycloak airflow-init
 ```
@@ -70,7 +101,7 @@ Then start Airflow services:
 docker-compose --env-file ./env/.env up -d airflow-webserver airflow-scheduler
 ```
 
-### Phase 4: Application Services
+**Phase 4: Application Services**
 ```bash
 docker-compose --env-file ./env/.env up -d neo4j
 ```
@@ -80,13 +111,15 @@ Wait ~2 minutes for Neo4j to be healthy.
 docker-compose --env-file ./env/.env up -d api-gateway neo4j-autosync grafana
 ```
 
-### Check Service Health
+### 3. Check Service Health
 ```bash
 docker-compose ps
 ```
 All services should show "healthy" status.
 
-**Services running**:
+---
+
+## Access Services
 
 | Service | Port | URL | Credentials |
 |---------|------|-----|-------------|
@@ -100,312 +133,173 @@ All services should show "healthy" status.
 
 ---
 
-## Step 3: Create Empty Repository ⏱️ 2 min
+## Run Data Ingestion Pipeline
 
-1. Open http://localhost:7200
-2. **Setup** → **Repositories** → **Create new repository**
-3. Configuration:
-   - **Repository ID**: `ekg`
-   - **Ruleset**: `OWL-RL (Optimized)`
-   - **✅ Enable SHACL validation** (CHECK THIS!)
-4. Click **Create**
+### Option 1: Airflow UI (Recommended)
 
-**✅ Verify**: Repository `ekg` appears with 0 triples
+1. Open Airflow: http://localhost:8080 (admin/admin)
+2. Find DAG: `ekg_ingest_pipeline`
+3. Toggle ON to enable the DAG
+4. Click ▶️ to trigger manually
 
----
+The pipeline will:
+1. Extract CSV from `seed/` directory
+2. Transform to RDF (TTL format)
+3. Create GraphDB repository if needed
+4. Upload ontologies (core → temporal → provenance → relations → security)
+5. Upload SHACL shapes
+6. Upload data (orgunits → persons → products → projects → assets)
+7. Run sanity checks
+8. Push metrics to Prometheus
 
-## Step 4: Run DAG Pipeline ⏱️ 5-8 min
+**Duration**: ~5-10 minutes
 
-The Airflow DAG does **EVERYTHING automatically**:
-- Extract CSV → Transform to RDF → Validate SHACL
-- Run sanity checks → Collect metrics
-- **Import to GraphDB** (ontologies + SHACL + data)
-- Push metrics to Prometheus
-
-### Execute:
-
-1. Open http://localhost:8080
-2. Login: `admin` / `admin`
-3. Click **DAGs**
-4. Find `ekg_ingest_pipeline`
-5. **Toggle ON** (activate)
-6. Click **▶ Trigger DAG**
-
-### Monitor Progress:
-
-8 tasks execute in sequence:
-```
-extract_csv → transform_to_rdf → validate_shacl → sanity_checks → 
-collect_metrics → quality_monitor → import_to_graphdb → update_metrics
-```
-
-**✅ All tasks must be GREEN** (success)
-
-### Verify Import:
+### Option 2: Airflow CLI
 
 ```bash
-curl -s "http://localhost:7200/repositories/ekg/size"
+docker exec -it ekg-airflow-scheduler airflow dags trigger ekg_ingest_pipeline
 ```
-
-**Expected**: ~798 triples
 
 ---
 
-## Step 5: Verify Everything ⏱️ 5-10 min
+## Verify Installation
 
-### 5.1 Prometheus Metrics
+### 1. GraphDB
+- URL: http://localhost:7200
+- Check repository `ekg` exists
+- Query: `SELECT * WHERE { ?s ?p ?o } LIMIT 10`
 
-**URL**: http://localhost:9090
+### 2. Neo4j
+- URL: http://localhost:7474
+- Login: neo4j/password
+- Query: `MATCH (n) RETURN count(n) as total`
+- Data syncs automatically from GraphDB every 30 seconds
 
-**Query**:
-```
-ekg_triple_count{job="ekg_post_import_metrics"}
-```
+### 3. Keycloak
+- URL: http://localhost:8180
+- Login: admin/admin
+- Check realm `ekg` exists with roles: viewer, curator, steward
 
-**Expected**: Value = 798
-
-**Check Status → Targets** (all should be UP):
-- ✅ prometheus
-- ✅ graphdb
-- ✅ graphdb-repository
-- ✅ api-gateway
-- ✅ pushgateway
-
----
-
-### 5.2 Grafana Dashboards
-
-**URL**: http://localhost:3001  
-**Login**: admin / admin
-
-**2 Dashboards**:
-
-1. **EKG Performance**
-   - GraphDB Heap Memory
-   - CPU Load
-   - Disk Space
-   - API Gateway Requests
-   
-2. **EKG Quality**
-   - Quality Score: 100
-   - SHACL Violations: 0
-   - Triple Count: 798
-   - Sanity Issues: 0
-
-**✅ All panels should display data**
+### 4. Grafana
+- URL: http://localhost:3001
+- Login: admin/admin
+- Pre-configured dashboards for EKG metrics
 
 ---
 
-### 5.3 Neo4j Graph Visualization
+## Common Issues
 
-**URL**: http://localhost:7474  
-**Login**: neo4j / password
-
-**Check Auto-Sync Logs**:
+### GraphDB takes long to start
+**Normal!** First-time initialization takes 5-6 minutes. Check logs:
 ```bash
-docker logs ekg-neo4j-autosync --tail 50
+docker logs ekg-graphdb
 ```
 
-**Expected**:
-```
-✓ Neo4j connected!
-✓ GraphDB connected!
-[2025-12-14] Change detected: 0 → 798 triples
-Syncing 798 triples...
-✓ Synced! Triples: 798
-```
-
-**Visualize Complete Graph** (1 connected graph):
-
-```cypher
-// Show ENTIRE graph in 1 visualization
-MATCH (n)-[r]->(m)
-WHERE NOT n:_GraphConfig 
-  AND NOT n:_NsPrefDef 
-  AND NOT m:_GraphConfig 
-  AND NOT m:_NsPrefDef
-RETURN n, r, m
-LIMIT 500
-```
-
-**Expected**: Connected graph showing:
-- 👥 Persons (ex__Person) - 8 nodes
-- 🏢 OrgUnits (ex__OrgUnit) - 6 nodes
-- 📦 Products (ex__Product) - 4 nodes
-- 💻 Assets (ex__Asset) - 4 nodes
-- 📁 Projects (ex__Project) - 3 nodes
-- Relationships: ex__worksFor, ex__manages, ex__usedIn, etc.
-
-**Count nodes by type**:
-```cypher
-MATCH (n)
-WHERE NOT n:_GraphConfig AND NOT n:_NsPrefDef
-RETURN labels(n) as type, count(*) as count
-ORDER BY count DESC
-```
-
----
-
-### 5.4 Keycloak RBAC Testing with Postman
-
-**File**: `tests/TEP-05_postman_collection.json`
-
-#### Import Collection:
-
-1. Open **Postman**
-2. **Import** → Select `tests/TEP-05_postman_collection.json`
-3. Collection "TEP-05 EKG Security & Governance" imported
-
-#### Execute Tests (IN ORDER):
-
-**Step 1: Authentication** (get tokens)
-- ✅ Login as alice.viewer
-- ✅ Login as bob.curator
-- ✅ Login as carol.steward
-- ✅ Login as dave.admin
-
-**Step 2: Viewer Tests** (alice.viewer)
-- ✅ GET /ekg/persons → SUCCESS (sees Public + Internal)
-- ❌ GET /ekg/quarantine → 403 FORBIDDEN
-- ❌ POST /ekg/sparql/update → 403 FORBIDDEN
-
-**Step 3: Curator Tests** (bob.curator)
-- ✅ GET /ekg/persons → SUCCESS (sees + Confidential)
-- ✅ GET /ekg/quarantine → SUCCESS
-- ✅ POST /ekg/quarantine/approve → SUCCESS
-- ❌ POST /ekg/sparql/update → 403 FORBIDDEN
-
-**Step 4: Steward Tests** (carol.steward)
-- ✅ GET /ekg/persons → SUCCESS (sees + Secret)
-- ✅ POST /ekg/sparql/update → SUCCESS
-- ✅ GET /ekg/quarantine → SUCCESS
-
-**Step 5: Admin Tests** (dave.admin)
-- ✅ GET /ekg/persons → SUCCESS (full access)
-- ✅ GET /ekg/quarantine → SUCCESS
-- ✅ POST /ekg/sparql/update → SUCCESS
-- ✅ POST /ekg/sparql/query → SUCCESS
-
-**✅ ALL TESTS MUST PASS** (green in Postman)
-
-#### RBAC/ABAC Matrix:
-
-| User | Role | Clearance | Read | Quarantine | SPARQL Update |
-|------|------|-----------|------|------------|---------------|
-| alice.viewer | viewer | Public, Internal | ✅ | ❌ | ❌ |
-| bob.curator | curator | + Confidential | ✅ | ✅ | ❌ |
-| carol.steward | steward | + Secret | ✅ | ✅ | ✅ |
-| dave.admin | admin | + Secret | ✅ | ✅ | ✅ |
-
----
-
-## ✅ Final Checklist
-
-- [x] **Step 1**: Docker images built
-- [x] **Step 2**: 12 services running and healthy
-- [x] **Step 3**: GraphDB repository `ekg` created (SHACL enabled)
-- [x] **Step 4**: Airflow DAG completed (8 tasks green)
-- [x] **Step 5.1**: Prometheus collects 798 triples
-- [x] **Step 5.2**: Grafana displays dashboards
-- [x] **Step 5.3**: Neo4j visualizes complete connected graph
-- [x] **Step 5.4**: Postman Keycloak RBAC tests pass
-
-**🎉 Your EKG is operational!**
-
----
-
-## Stop & Restart
-
-### Stop All:
+### Keycloak fails to start
+May need more time or database issues. Check:
 ```bash
-cd infra
+docker logs ekg-keycloak
+docker logs ekg-postgres
+```
+
+### Neo4j authentication errors
+If you see auth failures, reset Neo4j:
+```bash
+docker-compose down
+rm -rf infra/neo4j/data  # Safe - data syncs from GraphDB
+docker-compose up -d neo4j
+```
+
+### Airflow DAG not appearing
+Wait 1-2 minutes for scheduler to pick up DAGs:
+```bash
+docker logs ekg-airflow-scheduler | grep ekg_ingest_pipeline
+```
+
+---
+
+## Stop Services
+
+```bash
+# Stop all services (keeps data)
 docker-compose down
 
-# ⚠️ Delete all data:
+# Stop and remove volumes (fresh start)
 docker-compose down -v
 ```
 
-### Restart:
-Repeat the commands from Step 2 in order (Phase 1 through Phase 4).
-
-**Note**: Data persists in Docker volumes. No need to recreate repository or re-run DAG.
-
 ---
 
-## Troubleshooting
+## Project Structure
 
-### Service won't start:
-```bash
-docker-compose logs <service-name>
 ```
+infra/
+├── airflow/
+│   ├── dags/          # Airflow DAGs (ekg_ingest_pipeline)
+│   └── scripts/       # Python scripts for ETL
+├── api-gateway/       # NestJS API Gateway
+├── docker-compose.yml # Service orchestration
+├── env/
+│   ├── .env.example   # Example environment config
+│   └── .env           # Your local config (git-ignored)
+├── keycloak/
+│   └── realm-export.json  # EKG realm configuration
+├── neo4j-sync/        # Auto-sync service GraphDB → Neo4j
+├── init-db.sh         # PostgreSQL database initialization
+└── start-ekg.ps1      # Automated startup script (Windows)
 
-### DAG fails:
-1. Click red task in Airflow
-2. Read **Logs**
-3. Common errors:
-   - `Repository 'ekg' not found`: Create repository (Step 3)
-   - `SHACL validation failed`: Check CSV data
-   - Restart Airflow: `docker-compose restart airflow-scheduler airflow-webserver`
-
-### Neo4j not syncing:
-```bash
-docker logs ekg-neo4j-autosync --tail 100
-curl http://localhost:7200/repositories/ekg/size
-```
-
-### Grafana shows "No Data":
-```bash
-curl http://localhost:9090/-/healthy
-docker-compose restart grafana
-```
-
-### Port already in use:
-```bash
-# Windows
-netstat -ano | findstr :7200
-# Linux/Mac
-lsof -i :7200
+ontology/              # OWL ontologies
+shacl/                 # SHACL shapes
+seed/                  # Source CSV data
+data/generated/        # Generated RDF (git-ignored)
 ```
 
 ---
 
-## Useful Commands
+## Architecture
 
+```
+CSV Data (seed/)
+    ↓
+Airflow ETL Pipeline
+    ↓
+GraphDB (Triple Store - Source of Truth)
+    ↓
+    ├─→ Neo4j (Graph Analytics - Auto-synced)
+    ├─→ API Gateway (SPARQL Queries + Auth)
+    └─→ Prometheus/Grafana (Monitoring)
+```
+
+---
+
+## Development
+
+### Rebuild specific service
 ```bash
-# View all containers
-docker ps -a
+docker-compose build api-gateway
+docker-compose up -d api-gateway
+```
 
-# Real-time logs
-docker-compose logs -f <service>
+### View logs
+```bash
+docker-compose logs -f graphdb
+docker-compose logs -f airflow-scheduler
+```
 
-# Restart a service
-docker-compose restart <service>
-
-# Shell access
+### Execute commands in container
+```bash
 docker exec -it ekg-graphdb bash
-
-# Resource usage
-docker stats
-
-# GraphDB triple count
-curl http://localhost:7200/repositories/ekg/size
-
-# Neo4j cypher shell
-docker exec -it ekg-neo4j cypher-shell -u neo4j -p password
-
-# Prometheus targets
-curl -s http://localhost:9090/api/v1/targets
+docker exec -it ekg-airflow-scheduler bash
 ```
 
 ---
 
-## Next Steps
+## Support
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - Detailed system architecture
-- [docs/WALKTHROUGH_COMPLET_A_Z.md](docs/WALKTHROUGH_COMPLET_A_Z.md) - In-depth tutorial
-- Develop new secured API routes
-- Add new ETL pipelines
+- **Issues**: Check logs first (`docker-compose logs <service>`)
+- **Documentation**: See `/docs` directory
+- **Reset**: `docker-compose down -v` for complete fresh start
 
 ---
 
-**Version**: 2.0 Simplified - December 14, 2025
+**Next Steps**: After ingestion completes, explore GraphDB queries, test API endpoints, and configure Grafana dashboards!
